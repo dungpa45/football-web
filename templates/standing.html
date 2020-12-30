@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standing Table</title>
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+</head>
+
+<body>
+    <div id="standings" class="w3-container">
+        <table id="myTable" class="w3-table-all w3-medium">
+            {% autoescape false %}
+            {{listitem}}
+            {% endautoescape %}
+
+        </table>
+    </div>
+</body>
+
+</html>
