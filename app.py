@@ -85,7 +85,7 @@ def handle_data_standing(json_data):
         logo = team['team']['logo']
         rank = team['rank']
         name = f'<img align="left" width="28" height="28" src="{logo}"></img>'+team['team']["name"]
-        point = team["points"]
+        point = '<b>'+str(team["points"])+'</b>'
         description = team["description"]
         match = team["all"]["played"]
         win = team["all"]["win"]
@@ -94,10 +94,10 @@ def handle_data_standing(json_data):
         goals = team["all"]["goals"]["for"]
         against = team["all"]["goals"]["against"]
         goalsDiff = team["goalsDiff"]
-        list_team = [rank,name,match,point,win,draw,lose,goals,against,goalsDiff,description]
+        list_team = [rank,name,match,win,draw,lose,goals,against,goalsDiff,point,description]
         l_mess.append(list_team)
     
-    list_headers = ["No","Team","Match","Point","Win","Draw","Lose","Goals","Against","Difference","Detail"]
+    list_headers = ["No","Team","Match","Win","Draw","Lose","Goals","Against","Difference","Points","Detail"]
     message = tabulate(l_mess,headers=list_headers,tablefmt='html', colalign=("center" for i in list_headers))
     # print(message,type(message))
     return message
