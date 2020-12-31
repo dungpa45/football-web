@@ -6,7 +6,7 @@ import redis
 
 host="18.141.168.235"
 password = "QY7vI9mVEFJV1tKF"
-redis_server = redis.Redis(host=host, port=6379, db=0, password=password)
+redis_server = redis.Redis(host=host, port=6379, db=1, password=password)
 all_keys = redis_server.keys()
 
 app = Flask(__name__)
@@ -29,9 +29,10 @@ def save_in_redis(keyy,d_value):
     valuee = {"value":valuee}
     try:
         with redis_server.pipeline() as pipe:
-            # for h_id, item in d_value.items():
-            # pipe.hmset(h_id, item)
+            # save key in redis
             pipe.hmset(keyy, valuee)
+            # expire key
+            pipe.expire(keyy,86400)
             pipe.execute()
         redis_server.bgsave()
     except Exception as e:
