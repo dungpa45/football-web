@@ -5,11 +5,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Standing Table</title>
+    <link rel="shortcut icon" href="https://icon-library.com/images/640397_play.svg.svg" />
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
 </head>
 
 <body>
+    <div id="topbar" style="text-align: center;">
+        <form action="/" method="POST">
+            <label for="league">League:</label>
+            <select name="league" id="league">
+                <option value="epl">English Premier League</option>
+                <option value="laliga">La Liga</option>
+                <option value="seriea">Serie A</option>
+                <option value="bundes">Bundesliga</option>
+                <option value="ligue1">Ligue 1</option>
+            </select>
+
+            <label for="season">Season:</label>
+            <select name="season" id="season">
+                <option value="2010">2010-2011</option>
+                <option value="2011">2011-2012</option>
+                <option value="2012">2012-2013</option>
+                <option value="2013">2013-2014</option>
+                <option value="2014">2014-2015</option>
+                <option value="2015">2015-2016</option>
+                <option value="2016">2016-2017</option>
+                <option value="2017">2017-2018</option>
+                <option value="2018">2018-2019</option>
+                <option value="2019">2019-2020</option>
+                <option value="2020">2020-2021</option>
+            </select>
+
+            <input type="submit" value="Submit">
+        </form>
+    </div>
     <div id="standings" class="w3-container">
         <table id="myTable" class="w3-table-all w3-medium">
             {% autoescape false %}
@@ -18,6 +48,7 @@
 
         </table>
     </div>
+ 
 </body>
 
 </html>

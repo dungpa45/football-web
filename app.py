@@ -8,9 +8,10 @@ import redis
 
 load_dotenv()
 
-HOST =os.getenv("host")
-PASSWORD =os.getenv("password")
-
+HOST = os.getenv("host")
+PASSWORD = os.getenv("password")
+API_HOST = os.getenv("x-rapidapi-host")
+API_KEY = os.getenv("x-rapidapi-key")
 redis_server = redis.Redis(host=HOST, port=6379, db=0, password=PASSWORD)
 all_keys = redis_server.keys()
 
@@ -51,11 +52,11 @@ def get_data_redis(s_key):
     # print(l_standings)
     return json_data
 
-def get_data_api(season,league_value):
+def get_data_standing(season,league_value):
     conn = http.client.HTTPSConnection("v3.football.api-sports.io")
     headers = {
-        'x-rapidapi-host': "v3.football.api-sports.io",
-        'x-rapidapi-key': "19f9bf9793df4f07694b4f8f2d32ef2c"
+        'x-rapidapi-host': API_HOST,
+        'x-rapidapi-key': API_KEY
         }
     d_league = {
         "epl":"39",
@@ -85,7 +86,7 @@ def handle_data_standing(json_data):
         logo = team['team']['logo']
         rank = team['rank']
         name = f'<img align="left" width="28" height="28" src="{logo}"></img>'+team['team']["name"]
-        point = team["points"]
+        point = '<b>'+str(team["points"])+'</b>'
         description = team["description"]
         match = team["all"]["played"]
         win = team["all"]["win"]
@@ -94,10 +95,10 @@ def handle_data_standing(json_data):
         goals = team["all"]["goals"]["for"]
         against = team["all"]["goals"]["against"]
         goalsDiff = team["goalsDiff"]
-        list_team = [rank,name,match,point,win,draw,lose,goals,against,goalsDiff,description]
+        list_team = [rank,name,match,win,draw,lose,goals,against,goalsDiff,point,description]
         l_mess.append(list_team)
     
-    list_headers = ["No","Team","Match","Point","Win","Draw","Lose","Goals","Against","Difference","Detail"]
+    list_headers = ["No","Team","Match","Win","Draw","Lose","Goals","Against","Difference","Points","Detail"]
     message = tabulate(l_mess,headers=list_headers,tablefmt='html', colalign=("center" for i in list_headers))
     # print(message,type(message))
     return message
@@ -119,22 +120,22 @@ def main():
 
         #get data from api-football
         else:
-            dic_data = get_data_api(n_season,s_league)
+            dic_data = get_data_standing(n_season,s_league)
             save_in_redis(str_key,dic_data)
             list_data = handle_data_standing(dic_data)
-        # list_data = get_data_api(n_season,s_league)
+        # list_data = get_data_standing(n_season,s_league)
         list_data = list_data.replace('&lt;','<')
         list_data = list_data.replace('&gt;','>')
         list_data = list_data.replace('&quot;','"')
         list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
         return render_template("standing.html",listitem=list_data)
 
-# @app.route("/standing")
-# def standing():
-#     list_data = get_data_api()
-#     list_data = list_data.replace('<table>','<table class="w3-table-all w3-small">')
-#     # result = result.replace('</table>','<table class="w3-table-all w3-small">')
-#     return render_template('standing.html',listitem=list_data)
+@app.route("/standing",method="GET")
+def standing():
+    list_data = get_data_api()
+    list_data = list_data.replace('<table>','<table class="w3-table-all w3-small">')
+    # result = result.replace('</table>','<table class="w3-table-all w3-small">')
+    return render_template('standing.html',listitem=list_data)
 
 
 if __name__ == "__main__":
