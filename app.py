@@ -1,12 +1,17 @@
 from flask import Flask, render_template, request
 import http.client
 from tabulate import tabulate
+from dotenv import load_dotenv
+import os
 import json
 import redis
 
-host="18.141.168.235"
-password = "QY7vI9mVEFJV1tKF"
-redis_server = redis.Redis(host=host, port=6379, db=1, password=password)
+load_dotenv()
+
+HOST =os.getenv("host")
+PASSWORD =os.getenv("password")
+
+redis_server = redis.Redis(host=HOST, port=6379, db=0, password=PASSWORD)
 all_keys = redis_server.keys()
 
 app = Flask(__name__)
