@@ -5,13 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Standing Table</title>
-    <link rel="shortcut icon" href="https://icon-library.com/images/640397_play.svg.svg" />
+    <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" />
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
 </head>
 
 <body>
-    <div id="topbar" style="text-align: center;">
+    <div id="topbar" style="text-align: center; font-weight: bold;">
         <form action="/" method="POST">
             <label for="league">League:</label>
             <select name="league" id="league">
@@ -39,6 +39,9 @@
 
             <input type="submit" value="Submit">
         </form>
+    </div>
+    <div style="text-align: center; font-weight: bold; font-size: larger;">
+        <img width="48" height="auto" src={{logo_image}}><label>  {{league}}  {{season}}</label>
     </div>
     <div id="standings" class="w3-container">
         <table id="myTable" class="w3-table-all w3-medium">

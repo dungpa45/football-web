@@ -26,7 +26,10 @@
     display: block;
 }
 #topbar {
-  background: #d1dc8a;
+  background: #5b0666;
+  color: #ddd;
+  text-align: justify;
+  font-size: medium;
 }
 .sticky {
   position: fixed;

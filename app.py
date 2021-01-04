@@ -77,6 +77,14 @@ def get_data_standing(season,league_value):
     # print(json_data)
     return json_data
 
+def get_name_season_league(json_data):
+    d_data = json_data["response"][0]
+    name_league = d_data["league"]["name"]
+    season_league = d_data["league"]["season"]
+    season_league = str(season_league) + "-" +str(season_league+1)
+    logo = d_data["league"]["logo"]
+    return name_league, season_league, logo
+
 def handle_data_standing(json_data):
     d_data = json_data["response"][0]
     l_standings = d_data["league"]["standings"]
@@ -124,18 +132,20 @@ def main():
             save_in_redis(str_key,dic_data)
             list_data = handle_data_standing(dic_data)
         # list_data = get_data_standing(n_season,s_league)
+        league_season = get_name_season_league(dic_data)
         list_data = list_data.replace('&lt;','<')
         list_data = list_data.replace('&gt;','>')
         list_data = list_data.replace('&quot;','"')
         list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-        return render_template("standing.html",listitem=list_data)
+        return render_template("standing.html",listitem=list_data, 
+        league=league_season[0],season=league_season[1], logo_image=league_season[2])
 
-@app.route("/standing",method="GET")
-def standing():
-    list_data = get_data_api()
-    list_data = list_data.replace('<table>','<table class="w3-table-all w3-small">')
-    # result = result.replace('</table>','<table class="w3-table-all w3-small">')
-    return render_template('standing.html',listitem=list_data)
+# @app.route("/standing",method="GET")
+# def standing():
+#     list_data = get_data_api()
+#     list_data = list_data.replace('<table>','<table class="w3-table-all w3-small">')
+#     # result = result.replace('</table>','<table class="w3-table-all w3-small">')
+#     return render_template('standing.html',listitem=list_data)
 
 
 if __name__ == "__main__":
