@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import os
 import json
 import redis
+import datetime
 
 load_dotenv()
 
@@ -14,6 +15,20 @@ API_HOST = os.getenv("x-rapidapi-host")
 API_KEY = os.getenv("x-rapidapi-key")
 redis_server = redis.Redis(host=HOST, port=6379, db=0, password=PASSWORD)
 all_keys = redis_server.keys()
+
+conn = http.client.HTTPSConnection("v3.football.api-sports.io")
+headers = {
+    'x-rapidapi-host': API_HOST,
+    'x-rapidapi-key': API_KEY
+    }
+
+d_league = {
+    "epl":"39",
+    "laliga":"140",
+    "seriea":"135",
+    "bundes":"78",
+    "ligue1":"61"
+}
 
 app = Flask(__name__)
 
@@ -33,12 +48,17 @@ def save_in_redis(keyy,d_value):
     # valuee = json.dumps(d_value,indent=2).encode("utf-8")
     valuee = json.dumps(d_value)
     valuee = {"value":valuee}
+    time = datetime.datetime.now()
+    this_year = time.year
+    that_year = this_year - 1
     try:
         with redis_server.pipeline() as pipe:
             # save key in redis
             pipe.hmset(keyy, valuee)
             # expire key
-            pipe.expire(keyy,86400)
+            print("keyy",keyy)
+            if str(this_year) in keyy or str(that_year) in keyy:
+                pipe.expire(keyy,86400)
             pipe.execute()
         redis_server.bgsave()
     except Exception as e:
@@ -52,19 +72,7 @@ def get_data_redis(s_key):
     # print(l_standings)
     return json_data
 
-def get_data_standing(season,league_value):
-    conn = http.client.HTTPSConnection("v3.football.api-sports.io")
-    headers = {
-        'x-rapidapi-host': API_HOST,
-        'x-rapidapi-key': API_KEY
-        }
-    d_league = {
-        "epl":"39",
-        "laliga":"140",
-        "seriea":"135",
-        "bundes":"78",
-        "ligue1":"61"
-    }
+def get_data_standing(season,league_value): 
     league_id = d_league[league_value]
     print(league_id)
     # season = "2019"
@@ -111,6 +119,43 @@ def handle_data_standing(json_data):
     # print(message,type(message))
     return message
 
+def get_top_score(season,league_value):
+    print("####################",league_value)
+    league_id = d_league[league_value]
+    query = f"/players/topscorers?season={season}&league={league_id}"
+    conn.request("GET", query, headers=headers)
+
+    res = conn.getresponse()
+    data = res.read()
+    json_data = json.loads(data.decode("utf-8"))
+    return json_data
+
+def handle_data_top_score(json_data,this_season):
+    d_data = json_data["response"]
+    rank = 1
+    this_season
+    l_mess = []
+    for data in d_data:
+        photo = data["player"]["photo"]
+        logo = data["statistics"][0]["team"]["logo"]
+        club = f'<img align="left" width="28" height="28" src="{logo}"></img>' + data["statistics"][0]["team"]["name"]
+        name = f'<img align="left" width="38" height="38" src="{photo}"></img>' + data["player"]["name"] 
+        # age = data["player"]["age"]
+        date = data["player"]["birth"]["date"]
+        date = int(date.split("-")[0])
+        age = int(this_season) - date
+        nationality = data["player"]["nationality"]
+        appearences = data["statistics"][0]["games"]["appearences"]
+        goals = data["statistics"][0]["goals"]["total"]
+        goals = '<b>'+str(goals)+'</b>'
+        list_topscore = [rank,name,age,club,nationality,goals]
+        rank+=1
+        l_mess.append(list_topscore)
+    list_headers = ["Rank","Name","Age","Club","Country","Goals"]
+    message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
+    return message
+
+
 @app.route("/",methods=["GET","POST"])
 def main():
     if request.method == "GET":
@@ -118,35 +163,49 @@ def main():
     elif request.method == "POST":
         n_season = request.form.get("season")
         s_league = request.form.get("league")
-        str_key = n_season+"_"+s_league
-        print("==>",str_key)
-        list_keys = get_all_key_redis()
-        #check data in redis
-        if str_key in list_keys:
-            dic_data = get_data_redis(str_key)
-            list_data = handle_data_standing(dic_data)
-
-        #get data from api-football
-        else:
-            dic_data = get_data_standing(n_season,s_league)
-            save_in_redis(str_key,dic_data)
-            list_data = handle_data_standing(dic_data)
-        # list_data = get_data_standing(n_season,s_league)
-        league_season = get_name_season_league(dic_data)
-        list_data = list_data.replace('&lt;','<')
-        list_data = list_data.replace('&gt;','>')
-        list_data = list_data.replace('&quot;','"')
-        list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-        return render_template("standing.html",listitem=list_data, 
-        league=league_season[0],season=league_season[1], logo_image=league_season[2])
-
-# @app.route("/standing",method="GET")
-# def standing():
-#     list_data = get_data_api()
-#     list_data = list_data.replace('<table>','<table class="w3-table-all w3-small">')
-#     # result = result.replace('</table>','<table class="w3-table-all w3-small">')
-#     return render_template('standing.html',listitem=list_data)
-
+        if request.form.get("action") == "Standings":
+            str_key = n_season+"_"+s_league
+            print("==>",str_key)
+            list_keys = get_all_key_redis()
+            #check data in redis
+            if str_key in list_keys:
+                dic_data = get_data_redis(str_key)
+                list_data = handle_data_standing(dic_data)
+            #get data from api-football
+            else:
+                dic_data = get_data_standing(n_season,s_league)
+                save_in_redis(str_key,dic_data)
+                list_data = handle_data_standing(dic_data)
+            # list_data = get_data_standing(n_season,s_league)
+            league_season = get_name_season_league(dic_data)
+            list_data = list_data.replace('&lt;','<')
+            list_data = list_data.replace('&gt;','>')
+            list_data = list_data.replace('&quot;','"')
+            list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
+            return render_template("standing.html",listitem=list_data, 
+            league=league_season[0],season=league_season[1], logo_image=league_season[2])
+        elif request.form.get("action") == "TopScore":
+            str_key = "TopScore-"+n_season+"_"+s_league
+            print("==>",str_key)
+            list_keys = get_all_key_redis()
+            #check data in redis
+            if str_key in list_keys:
+                dic_data = get_data_redis(str_key)
+                list_data = handle_data_top_score(dic_data,n_season)
+            #get data from api-football
+            else:
+                dic_data = get_top_score(n_season,s_league)
+                save_in_redis(str_key,dic_data)
+                list_data = handle_data_top_score(dic_data,n_season)
+            # list_data = get_data_standing(n_season,s_league)
+            # league_season = get_name_season_league(dic_data)
+            list_data = list_data.replace('&lt;','<')
+            list_data = list_data.replace('&gt;','>')
+            list_data = list_data.replace('&quot;','"')
+            list_data = list_data.replace('<table>','<table id="TopScoreTable" class="w3-table-all w3-medium">')
+            return render_template("topscore.html",listitem=list_data
+            # league=league_season[0],season=league_season[1], logo_image=league_season[2]
+            )
 
 if __name__ == "__main__":
     app.run(debug=True)

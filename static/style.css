@@ -29,7 +29,7 @@
   background: #5b0666;
   color: #ddd;
   text-align: justify;
-  font-size: medium;
+  font-size: smaller;
 }
 .sticky {
   position: fixed;

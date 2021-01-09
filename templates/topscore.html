@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Standing Table</title>
+    <title>Top Score Table</title>
     <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" />
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
@@ -37,14 +37,14 @@
                 <option value="2020">2020-2021</option>
             </select>
 
-            <input type="submit" name="action" value="Standings">
+            <input type="submit" name="action" value="TopScore">
         </form>
     </div>
     <div style="text-align: center; font-weight: bold; font-size: larger;">
         <img width="48" height="auto" src={{logo_image}}><label>  {{league}}  {{season}}</label>
     </div>
     <div id="standings" class="w3-container">
-        <table id="myTable" class="w3-table-all w3-medium">
+        <table id="TopScoreTable" class="w3-table-all w3-medium">
             {% autoescape false %}
             {{listitem}}
             {% endautoescape %}
