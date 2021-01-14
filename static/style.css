@@ -5,22 +5,22 @@
     width: 100%;
   }
   
-  #standings td, #standings th {
-    border: 0px solid #ddd;
-    padding: 5px;
-  }
-  
-  #standings tr:nth-child(even){background-color: #f2f2f2;}
-  
-  #standings tr:hover {background-color: #ddd;}
-  
-  #standings th {
-    padding-top: 12px;
-    padding-bottom: 12px;
-    text-align: left;
-    background-color: #5b0666;
-    color: white;
-  }
+#standings td, #standings th {
+  border: 0px solid #ddd;
+  padding: 5px;
+}
+
+#standings tr:nth-child(even){background-color: #f2f2f2;}
+
+#standings tr:hover {background-color: #ddd;}
+
+#standings th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: #5b0666;
+  color: white;
+}
 
 #logo image{
     display: block;
@@ -28,8 +28,29 @@
 #topbar {
   background: #5b0666;
   color: #ddd;
-  text-align: justify;
-  font-size: smaller;
+  /* text-align: justify; */
+  /* font-size: smaller; */
+}
+#topbar a {
+  float: left;
+  color: #ddd;
+  text-align: center;
+  margin: 14px 16px;
+  text-decoration: none;
+  font-size: 14px;
+
+}
+#topbar a:hover {
+  background-color: #ddd;
+  color: black;
+}
+#topbar form {
+  float: left;
+  color: #090808;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 14px;
 }
 .sticky {
   position: fixed;

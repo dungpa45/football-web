@@ -11,7 +11,8 @@
 </head>
 
 <body>
-    <div id="topbar" style="text-align: center; font-weight: bold;">
+    <div id="topbar" style=" font-weight: bold;">
+        <a class="w3-btn" href="/">Home</a>
         <form action="/" method="POST">
             <label for="league">League:</label>
             <select name="league" id="league">
@@ -41,7 +42,7 @@
         </form>
     </div>
     <div style="text-align: center; font-weight: bold; font-size: larger;">
-        <img width="48" height="auto" src={{logo_image}}><label>  {{league}}  {{season}}</label>
+        <img width="48" height="auto" src={{logo_image}}><label> {{league}} {{season}}</label>
     </div>
     <div id="standings" class="w3-container">
         <table id="myTable" class="w3-table-all w3-medium">
@@ -51,7 +52,7 @@
 
         </table>
     </div>
- 
+
 </body>
 
 </html>
