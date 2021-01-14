@@ -86,6 +86,24 @@ def get_data_standing(season,league_value):
     # print(json_data)
     return json_data
 
+def get_top_score(season,league_value):
+    # print("####################",league_value)
+    league_id = d_league[league_value]
+    query = f"/players/topscorers?season={season}&league={league_id}"
+    conn.request("GET", query, headers=headers)
+    res = conn.getresponse()
+    data = res.read()
+    json_data = json.loads(data.decode("utf-8"))
+    return json_data
+
+def get_team_info(team_id):
+    query = f"/teams?id={team_id}"
+    conn.request("GET", query, headers=headers)
+    res = conn.getresponse()
+    data = res.read()
+    json_data = json.loads(data.decode("utf-8"))
+    return json_data
+
 def get_name_season_league(json_data):
     d_data = json_data["response"][0]
     name_league = d_data["league"]["name"]
@@ -111,8 +129,10 @@ def handle_data_standing(json_data):
     for team in l_standings[0]:
         # print(team)
         logo = team['team']['logo']
+        team_id = team['team']['id']
         rank = team['rank']
-        name = f'<img align="left" width="28" height="28" src="{logo}"></img>'+team['team']["name"]
+        name = f'<img align="left" width="28" height="28" src="{logo}"></img>'+\
+                f'<a href="/teams/{team_id}">' + team['team']["name"] + "</a>"
         point = '<b>'+str(team["points"])+'</b>'
         description = team["description"]
         match = team["all"]["played"]
@@ -130,16 +150,33 @@ def handle_data_standing(json_data):
     # print(message,type(message))
     return message
 
-def get_top_score(season,league_value):
-    print("####################",league_value)
-    league_id = d_league[league_value]
-    query = f"/players/topscorers?season={season}&league={league_id}"
-    conn.request("GET", query, headers=headers)
-
-    res = conn.getresponse()
-    data = res.read()
-    json_data = json.loads(data.decode("utf-8"))
-    return json_data
+def handle_data_team_info(json_data):
+    d_data = json_data["response"][0]
+    team_name = d_data["team"]["name"]
+    country = d_data["team"]["country"]
+    founded = d_data["team"]["founded"]
+    logo = d_data["team"]["logo"]
+    logo = f'<img align="left" max-width="100px" height="auto" src="{logo}"></img>'
+    stadium = d_data["venue"]["name"]
+    address = d_data["venue"]["address"]
+    city = d_data["venue"]["city"]
+    capacity = d_data["venue"]["capacity"]
+    surface = d_data["venue"]["surface"]
+    image = d_data["venue"]["image"]
+    image = f'<img align="left" max-width="100px" height="auto" src="{image}"></img>'
+    l_mess = []
+    # l_items = [team_name,country,founded,logo,stadium,address,city,capacity,surface,image]
+    # l_mess.append(l_items)
+    l_mess = [
+        ["",logo],
+        ["Team Name",team_name],["Country",country],
+        ["Founded",founded],["Stadium",stadium],
+        ["Address",address],["City",city],
+        ["Capacity",capacity],["Surface",surface],
+        ["",image]
+        ]
+    message = tabulate(l_mess,tablefmt='html')
+    return message
 
 def handle_data_top_score(json_data,this_season):
     d_data = json_data["response"]
@@ -157,17 +194,19 @@ def handle_data_top_score(json_data,this_season):
         age = int(this_season) - date
         nationality = data["player"]["nationality"]
         appearences = data["statistics"][0]["games"]["appearences"]
+        rating = data["statistics"][0]["games"]["rating"]
         goals = data["statistics"][0]["goals"]["total"]
+        assists = data["statistics"][0]["goals"]["assists"]
         goals = '<b>'+str(goals)+'</b>'
-        list_topscore = [rank,name,age,club,nationality,goals]
+        list_topscore = [rank,name,age,club,nationality,goals,assists,appearences,rating]
         rank+=1
         l_mess.append(list_topscore)
-    list_headers = ["Rank","Name","Age","Club","Country","Goals"]
+    list_headers = ["Rank","Name","Age","Club","Country","Goals","Assists","App","Rating"]
     message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
     return message
 
 @app.route("/standing/<n_season>/<s_league>",methods=["GET","POST"])
-def standing(n_season, s_league):
+def standing_(n_season, s_league):
     str_key = n_season+"_"+s_league
     print("==>",str_key)
     list_keys = get_all_key_redis()
@@ -188,6 +227,25 @@ def standing(n_season, s_league):
     list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
     return render_template("standing.html",listitem=list_data, 
             league=league_season[0],season=league_season[1], logo_image=league_season[2])
+
+@app.route("/teams/<team_id>",methods=["GET","POST"])
+def team_infomation(team_id):
+    str_key = "Team_"+team_id
+    list_keys = get_all_key_redis()
+    #check data in redis
+    if str_key in list_keys:
+        dic_data = get_data_redis(str_key)
+        list_data = handle_data_team_info(dic_data)
+    #get data from api-football
+    else:
+        dic_data = get_team_info(team_id)
+        save_in_redis(str_key,dic_data)
+        list_data = handle_data_team_info(dic_data)
+    list_data = list_data.replace('&lt;','<')
+    list_data = list_data.replace('&gt;','>')
+    list_data = list_data.replace('&quot;','"')
+    list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
+    return render_template("team_info.html",listitem=list_data)
 
 @app.route("/topscorers/<n_season>/<s_league>",methods=["GET","POST"]) 
 def topscorers(n_season, s_league):
@@ -222,7 +280,7 @@ def main():
         n_season = request.form.get("season")
         s_league = request.form.get("league")
         if request.form.get("action") == "Standings":
-            return redirect(url_for('standing',n_season=n_season,s_league=s_league))
+            return redirect(url_for('standing_',n_season=n_season,s_league=s_league))
         elif request.form.get("action") == "TopScore":
             return redirect(url_for('topscorers',n_season=n_season,s_league=s_league))
 
