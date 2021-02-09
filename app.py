@@ -131,7 +131,7 @@ def handle_data_standing(json_data):
         logo = team['team']['logo']
         team_id = team['team']['id']
         rank = team['rank']
-        name = f'<img align="left" width="28" height="28" src="{logo}"></img>'+\
+        name = f'<img align="left" width="28" height="28" src="{logo}">'+\
                 f'<a href="/teams/{team_id}">' + team['team']["name"] + "</a>"
         point = '<b>'+str(team["points"])+'</b>'
         description = team["description"]
@@ -156,14 +156,14 @@ def handle_data_team_info(json_data):
     country = d_data["team"]["country"]
     founded = d_data["team"]["founded"]
     logo = d_data["team"]["logo"]
-    logo = f'<img align="left" max-width="100px" height="auto" src="{logo}"></img>'
+    logo = f'<img align="left" max-width="100px" height="auto" src="{logo}">'
     stadium = d_data["venue"]["name"]
     address = d_data["venue"]["address"]
     city = d_data["venue"]["city"]
     capacity = d_data["venue"]["capacity"]
     surface = d_data["venue"]["surface"]
     image = d_data["venue"]["image"]
-    image = f'<img align="left" max-width="100px" height="auto" src="{image}"></img>'
+    image = f'<img align="left" max-width="100px" height="auto" src="{image}">'
     l_mess = []
     # l_items = [team_name,country,founded,logo,stadium,address,city,capacity,surface,image]
     # l_mess.append(l_items)
@@ -186,8 +186,8 @@ def handle_data_top_score(json_data,this_season):
     for data in d_data:
         photo = data["player"]["photo"]
         logo = data["statistics"][0]["team"]["logo"]
-        club = f'<img align="left" width="28" height="28" src="{logo}"></img>' + data["statistics"][0]["team"]["name"]
-        name = f'<img align="left" width="38" height="38" src="{photo}"></img>' + data["player"]["name"] 
+        club = f'<img align="left" width="28" height="28" src="{logo}">' + data["statistics"][0]["team"]["name"]
+        name = f'<img align="left" width="38" height="38" src="{photo}">' + data["player"]["name"] 
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]
         date = int(date.split("-")[0])
@@ -224,8 +224,8 @@ def standing_(n_season, s_league):
     list_data = list_data.replace('&lt;','<')
     list_data = list_data.replace('&gt;','>')
     list_data = list_data.replace('&quot;','"')
-    list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    return render_template("standing.html",listitem=list_data, 
+    list_data = list_data.replace('<table>','<table id="myTableLeague" class="w3-table-all w3-medium sortable">')
+    return render_template("standing.html",listitem=list_data, n_season=n_season,s_league=s_league,
             league=league_season[0],season=league_season[1], logo_image=league_season[2])
 
 @app.route("/teams/<team_id>",methods=["GET","POST"])
@@ -267,8 +267,8 @@ def topscorers(n_season, s_league):
     list_data = list_data.replace('&lt;','<')
     list_data = list_data.replace('&gt;','>')
     list_data = list_data.replace('&quot;','"')
-    list_data = list_data.replace('<table>','<table id="TopScoreTable" class="w3-table-all w3-medium">')
-    return render_template("topscore.html",listitem=list_data,
+    list_data = list_data.replace('<table>','<table id="TopScoreTable" class="w3-table-all w3-medium sortable">')
+    return render_template("topscore.html",listitem=list_data,n_season=n_season,s_league=s_league,
             league=league_season[0],season=league_season[1], logo_image=league_season[2]
     )
 

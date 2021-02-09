@@ -6,8 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Standing Table</title>
     <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" />
-    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-    <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+    <link rel="stylesheet" type="text/css" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style.css') }}">
+    <script src="{{ url_for('static',filename='sorttable.js') }}"></script>
 </head>
 
 <body>
@@ -16,41 +17,42 @@
         <form action="/" method="POST">
             <label for="league">League:</label>
             <select name="league" id="league">
-                <option value="epl">English Premier League</option>
-                <option value="laliga">La Liga</option>
-                <option value="seriea">Serie A</option>
-                <option value="bundes">Bundesliga</option>
-                <option value="ligue1">Ligue 1</option>
+                <option value="epl" {% if s_league =="epl" %} selected {% endif %}>English Premier League</option>
+                <option value="laliga" {% if s_league =="laliga" %} selected {% endif %}>La Liga</option>
+                <option value="seriea" {% if s_league =="seriea" %} selected {% endif %}>Serie A</option>
+                <option value="bundes" {% if s_league =="bundes" %} selected {% endif %}>Bundesliga</option>
+                <option value="ligue1" {% if s_league =="ligue1" %} selected {% endif %}>Ligue 1</option>
             </select>
 
             <label for="season">Season:</label>
-            <select name="season" id="season">
-                <option value="2010">2010-2011</option>
-                <option value="2011">2011-2012</option>
-                <option value="2012">2012-2013</option>
-                <option value="2013">2013-2014</option>
-                <option value="2014">2014-2015</option>
-                <option value="2015">2015-2016</option>
-                <option value="2016">2016-2017</option>
-                <option value="2017">2017-2018</option>
-                <option value="2018">2018-2019</option>
-                <option value="2019">2019-2020</option>
-                <option value="2020">2020-2021</option>
+            <select name="season" id="season" required>
+                <option value="2010" {% if n_season =="2010" %} selected {% endif %}>2010-2011</option>
+                <option value="2011" {% if n_season =="2011" %} selected {% endif %}>2011-2012</option>
+                <option value="2012" {% if n_season =="2012" %} selected {% endif %}>2012-2013</option>
+                <option value="2013" {% if n_season =="2013" %} selected {% endif %}>2013-2014</option>
+                <option value="2014" {% if n_season =="2014" %} selected {% endif %}>2014-2015</option>
+                <option value="2015" {% if n_season =="2015" %} selected {% endif %}>2015-2016</option>
+                <option value="2016" {% if n_season =="2016" %} selected {% endif %}>2016-2017</option>
+                <option value="2017" {% if n_season =="2017" %} selected {% endif %}>2017-2018</option>
+                <option value="2018" {% if n_season =="2018" %} selected {% endif %}>2018-2019</option>
+                <option value="2019" {% if n_season =="2019" %} selected {% endif %}>2019-2020</option>
+                <option value="2020" {% if n_season =="2020" %} selected {% endif %}>2020-2021</option>
             </select>
 
             <input type="submit" name="action" value="Standings">
+            <input type="submit" name="action" value="TopScore">
         </form>
     </div>
     <div style="text-align: center; font-weight: bold; font-size: larger;">
         <img width="48" height="auto" src={{logo_image}}><label> {{league}} {{season}}</label>
     </div>
     <div id="standings" class="w3-container">
-        <table id="myTable" class="w3-table-all w3-medium">
-            {% autoescape false %}
-            {{listitem}}
-            {% endautoescape %}
+        <!-- <table id="myTableLeague" class="w3-table-all w3-medium"> -->
+        {% autoescape false %}
+        {{listitem}}
+        {% endautoescape %}
 
-        </table>
+        <!-- </table> -->
     </div>
 
 </body>
