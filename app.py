@@ -107,9 +107,11 @@ def get_team_info(team_id):
 def get_name_season_league(json_data):
     d_data = json_data["response"][0]
     name_league = d_data["league"]["name"]
+    id = d_data["league"]["id"]
     season_league = d_data["league"]["season"]
     season_league = str(season_league) + "-" +str(season_league+1)
-    logo = d_data["league"]["logo"]
+    # logo = d_data["league"]["logo"]
+    logo = url_for('static',filename="league_logo/"+str(id)+'.png')
     return name_league, season_league, logo
 
 def get_season_name(json_data):
