@@ -287,4 +287,4 @@ def main():
             return redirect(url_for('topscorers',n_season=n_season,s_league=s_league))
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True,host="0.0.0.0")
