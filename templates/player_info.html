@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Footballer Information</title>
+    <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" />
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+</head>
+
+<body>
+    <div id="topbar" style="text-align: center; font-weight: bold;">
+        <a class="w3-btn" href="/">Home</a>
+    </div>
+    <div style="text-align: center; font-weight: bold; font-size: larger;">
+        <img width="48" height="auto" src={{logo_image}}><label>  {{player}}  </label>
+    </div>
+    <div id="standings" class="w3-container">
+        <table id="TeamInfo" class="w3-table-all w3-medium">
+            {% autoescape false %}
+            {{listitem}}
+            {% endautoescape %}
+
+        </table>
+    </div>
+ 
+</body>
+
+</html>
