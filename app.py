@@ -126,18 +126,16 @@ def get_team_info(team_id):
     json_data = json.loads(data.decode("utf-8"))
     return json_data
 
-def get_player_info(player_id):
-    query = f"/players?id={player_id}"
+def get_player_info(player_id, n_season):
+    query = f"/players?id={player_id}&season={n_season}"
     conn.request("GET", query, headers=headers)
     res = conn.getresponse()
     data = res.read()
     json_data = json.loads(data.decode("utf-8"))
     return json_data
-
-    
     
 
-# Site standing of leaguage
+# Site standing of league
 @app.route("/standing/<n_season>/<s_league>",methods=["GET","POST"])
 def standing_(n_season, s_league):
     str_key = n_season+"_"+s_league
@@ -180,8 +178,8 @@ def team_infomation(team_id):
     list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
     return render_template("team_info.html",listitem=list_data)
 
-@app.route("/players/<player_id>",methods=["GET","POST"])
-def player_infomation(player_id):
+@app.route("/topscorers/<n_season>/<s_league>/players/<player_id>",methods=["GET","POST"])
+def player_infomation(n_season,s_league,player_id):
     str_key = "Player_"+player_id
     list_keys = get_all_key_redis()
     #check data in redis
@@ -190,7 +188,7 @@ def player_infomation(player_id):
         list_data = handle_data_player_info(dic_data)
     #get data from api-football
     else:
-        dic_data = get_player_info(player_id)
+        dic_data = get_player_info(player_id,n_season)
         save_in_redis(str_key,dic_data)
         list_data = handle_data_player_info(dic_data)
     list_data = list_data.replace('&lt;','<')
@@ -207,12 +205,12 @@ def topscorers(n_season, s_league):
     #check data in redis
     if str_key in list_keys:
         dic_data = get_data_redis(str_key)
-        list_data = handle_data_top_score(dic_data,n_season)
+        list_data = handle_data_top_score(dic_data,n_season,s_league)
     #get data from api-football
     else:
         dic_data = get_top_score(n_season,s_league)
         save_in_redis(str_key,dic_data)
-        list_data = handle_data_top_score(dic_data,n_season)
+        list_data = handle_data_top_score(dic_data,n_season,s_league)
     
     league_season = get_season_name(dic_data)
     print(n_season,type(n_season),s_league,type(s_league))

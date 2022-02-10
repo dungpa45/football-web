@@ -59,26 +59,36 @@ def handle_data_team_info(json_data):
     return message
 
 def handle_data_player_info(json_data):
-    d_data = json_data["response"]
-    print(d_data)
     d_data = json_data["response"][0]["player"]
+    d_stat = json_data["response"][0]["statistics"][0]
     id = d_data["id"]
     name_player = d_data["name"]
     full_name = d_data["firstname"] + " " + d_data["lastname"]
     image = d_data["photo"]
+    image = f'<img align="left" max-width="100px" height="auto" src="{image}">'
+    age = d_data["age"]
+    nation = d_data["nationality"]
+    birth = d_data["birth"]["date"]
+    birth_place = d_data["birth"]["place"] +" - "+ d_data["birth"]["country"]
+    height = d_data["height"]
+    weight = d_data["weight"]
+    team = d_stat["team"]["name"]
+    appear = str(d_stat["games"]["appearences"]) +"/"+ str(d_stat["games"]["lineups"])
+    position = d_stat["games"]["position"]
     l_mess = [
-        ["",logo],
-        ["Player Name",full_name],["Country",id],
-        # ["Founded",founded],["Stadium",stadium],
-        # ["Address",address],["City",city],
-        # ["Capacity",capacity],["Surface",surface],
-        ["",image]
+        ["",image],
+        ["Player Name",full_name],["Position",position],
+        ["Nationality",nation],["Age",age],["Birth",birth],
+        ["Birth place",birth_place],
+        ["Height",height],["Weight",weight],
+        ["Current team",team],["This season stats"],
+        ["Appearences/Lineups", appear]
         ]
     message = tabulate(l_mess,tablefmt='html')
     return message
 
 # Xu ly data top score
-def handle_data_top_score(json_data,this_season):
+def handle_data_top_score(json_data,this_season,this_league):
     d_data = json_data["response"]
     rank = 1
     this_season
@@ -88,10 +98,8 @@ def handle_data_top_score(json_data,this_season):
         player_id = data["player"]["id"]
         team_id = data["statistics"][0]['team']['id']
         logo = data["statistics"][0]["team"]["logo"]
-        club = f'<img align="left" width="28" height="28" src="{logo}">' + data["statistics"][0]["team"]["name"]
-        name = f'<img align="left" width="38" height="38" src="{photo}">' + data["player"]["name"]
         name = f'<img align="left" width="38" height="38" src="{photo}">' +\
-                f'<a href="/players/{player_id}">' + data["player"]["name"] + "</a>"
+                f'<a href="/topscorers/{this_season}/{this_league}/players/{player_id}">' + data["player"]["name"] + "</a>"
         club = f'<img align="left" width="28" height="28" src="{logo}">'+\
                 f'<a href="/teams/{team_id}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
