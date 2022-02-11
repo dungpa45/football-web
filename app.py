@@ -57,7 +57,7 @@ def save_in_redis(keyy,d_value):
     try:
         with redis_server.pipeline() as pipe:
             # save key in redis
-            pipe.hset(keyy, valuee)
+            pipe.hmset(keyy, valuee)
             # expire key
             print("keyy",keyy)
             if str(this_year) in keyy or str(that_year) in keyy:

@@ -59,8 +59,11 @@ def handle_data_team_info(json_data):
     return message
 
 def handle_data_player_info(json_data):
+    # print(json_data["response"][0])
     d_data = json_data["response"][0]["player"]
     d_stat = json_data["response"][0]["statistics"][0]
+    season = json_data["parameters"]["season"]
+    this_season = season + " - " + str(int(season)+1)
     id = d_data["id"]
     name_player = d_data["name"]
     full_name = d_data["firstname"] + " " + d_data["lastname"]
@@ -75,14 +78,17 @@ def handle_data_player_info(json_data):
     team = d_stat["team"]["name"]
     appear = str(d_stat["games"]["appearences"]) +"/"+ str(d_stat["games"]["lineups"])
     position = d_stat["games"]["position"]
+    rating = d_stat["games"]["rating"]
+    goals_assist = str(d_stat["goals"]["total"]) + "/" + str(d_stat["goals"]["assists"])
     l_mess = [
         ["",image],
         ["Player Name",full_name],["Position",position],
         ["Nationality",nation],["Age",age],["Birth",birth],
-        ["Birth place",birth_place],
-        ["Height",height],["Weight",weight],
-        ["Current team",team],["This season stats"],
-        ["Appearences/Lineups", appear]
+        ["Birth place",birth_place],["Height",height],
+        ["Weight",weight],["Current team",team],
+        ["This season stats",this_season],
+        ["Appearences / Lineups", appear],["Rating", rating],
+        ["Goals / Assists", goals_assist]
         ]
     message = tabulate(l_mess,tablefmt='html')
     return message
