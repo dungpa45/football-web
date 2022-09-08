@@ -48,7 +48,7 @@ def handle_data_team_info(json_data):
     # l_items = [team_name,country,founded,logo,stadium,address,city,capacity,surface,image]
     # l_mess.append(l_items)
     l_mess = [
-        ["",logo],
+        ["Current Squads",logo],
         ["Team Name",team_name],["Country",country],
         ["Founded",founded],["Stadium",stadium],
         ["Address",address],["City",city],
@@ -56,6 +56,23 @@ def handle_data_team_info(json_data):
         ["",image]
         ]
     message = tabulate(l_mess,tablefmt='html')
+    return message
+
+def handle_data_squad(json_data,):
+    d_data = json_data["response"][0]
+    l_mess = []
+    for data in d_data["players"]:
+        player_id = data["id"]
+        photo = data["photo"]
+        name_player = f'<img align="left" width="38" height="38" src="{photo}">' +\
+                f'<a href="/players/{player_id}">' + data["name"] + "</a>"
+        age = data["age"]
+        no = data["number"]
+        position = data["position"]
+        l_row = [name_player,age,position,no]
+        l_mess.append(l_row)
+    list_headers = ["Name","Age","Position","No"]
+    message = tabulate(l_mess, headers=list_headers, tablefmt='html', colalign=("left" for i in list_headers))
     return message
 
 def handle_data_player_info(json_data):
@@ -105,7 +122,7 @@ def handle_data_top_score(json_data,this_season,this_league):
         team_id = data["statistics"][0]['team']['id']
         logo = data["statistics"][0]["team"]["logo"]
         name = f'<img align="left" width="38" height="38" src="{photo}">' +\
-                f'<a href="/topscorers/{this_season}/{this_league}/players/{player_id}">' + data["player"]["name"] + "</a>"
+                f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
         club = f'<img align="left" width="28" height="28" src="{logo}">'+\
                 f'<a href="/teams/{team_id}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]

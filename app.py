@@ -8,7 +8,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from tabulate import tabulate
 from dotenv import load_dotenv
 
-from handle_data import handle_data_standing, handle_data_team_info, handle_data_top_score, handle_data_player_info
+from handle_data import handle_data_standing, handle_data_team_info,handle_data_squad, handle_data_top_score, handle_data_player_info
 
 load_dotenv()
 
@@ -75,27 +75,26 @@ def get_data_redis(s_key):
     # print(l_standings)
     return json_data
 
-def get_data_standing(season,league_value): 
-    league_id = d_league[league_value]
-    print(league_id)
-    # season = "2019"
-    query = f"/standings?league={league_id}&season={season}"
+def json_process(query):
     conn.request("GET", query, headers=headers)
     print(query)
     res = conn.getresponse()
     data = res.read()
-    json_data = json.loads(data.decode("utf-8"))
-    # print(json_data)
+    d_json = json.loads(data.decode("utf-8"))
+    return d_json
+
+def get_data_standing(season,league_value): 
+    league_id = d_league[league_value]
+    print(league_id)
+    query = f"/standings?league={league_id}&season={season}"
+    json_data = json_process(query)
     return json_data
 
 def get_top_score(season,league_value):
     # print("####################",league_value)
     league_id = d_league[league_value]
     query = f"/players/topscorers?season={season}&league={league_id}"
-    conn.request("GET", query, headers=headers)
-    res = conn.getresponse()
-    data = res.read()
-    json_data = json.loads(data.decode("utf-8"))
+    json_data = json_process(query)
     return json_data
 
 def get_name_season_league(json_data):
@@ -120,21 +119,20 @@ def get_season_name(json_data):
 
 def get_team_info(team_id):
     query = f"/teams?id={team_id}"
-    conn.request("GET", query, headers=headers)
-    res = conn.getresponse()
-    data = res.read()
-    json_data = json.loads(data.decode("utf-8"))
+    json_data = json_process(query)
     return json_data
 
 def get_player_info(player_id, n_season):
     query = f"/players?id={player_id}&season={n_season}"
-    conn.request("GET", query, headers=headers)
-    res = conn.getresponse()
-    data = res.read()
-    json_data = json.loads(data.decode("utf-8"))
+    json_data = json_process(query)
     return json_data
-    
 
+def get_squads(team_id):
+    query = f"/players/squads?team={team_id}"
+    json_data = json_process(query)
+    return json_data
+
+# =============== ROUTE ==================================
 # Site standing of league
 @app.route("/standing/<n_season>/<s_league>",methods=["GET","POST"])
 def standing_(n_season, s_league):
@@ -162,25 +160,36 @@ def standing_(n_season, s_league):
 @app.route("/teams/<team_id>",methods=["GET","POST"])
 def team_infomation(team_id):
     str_key = "Team_"+team_id
+    str_key_squad = "Team_squad_"+team_id
     list_keys = get_all_key_redis()
     #check data in redis
     if str_key in list_keys:
         dic_data = get_data_redis(str_key)
         list_data = handle_data_team_info(dic_data)
+        squad_data = get_squads(team_id)
+        l_data = handle_data_squad(squad_data)
     #get data from api-football
     else:
         dic_data = get_team_info(team_id)
         save_in_redis(str_key,dic_data)
         list_data = handle_data_team_info(dic_data)
+        squad_data = get_squads(team_id)
+        l_data = handle_data_squad(squad_data)
     list_data = list_data.replace('&lt;','<')
     list_data = list_data.replace('&gt;','>')
     list_data = list_data.replace('&quot;','"')
     list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    return render_template("team_info.html",listitem=list_data)
+    l_data = l_data.replace('&lt;','<')
+    l_data = l_data.replace('&gt;','>')
+    l_data = l_data.replace('&quot;','"')
+    l_data = l_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
 
-@app.route("/topscorers/<n_season>/<s_league>/players/<player_id>",methods=["GET","POST"])
+    # print(list_data+l_data)
+    return render_template("team_info.html",listitem=list_data + l_data)
+
+@app.route("/players/<player_id>/<n_season>/<s_league>",methods=["GET","POST"])
 def player_infomation(n_season,s_league,player_id):
-    str_key = "Player_"+player_id
+    str_key = f'Player_{player_id}_{n_season}_{s_league}'
     list_keys = get_all_key_redis()
     #check data in redis
     if str_key in list_keys:
