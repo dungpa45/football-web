@@ -1,7 +1,7 @@
 from tabulate import tabulate
 
 
-def handle_data_standing(json_data):
+def handle_data_standing(json_data,s_league,n_season):
     d_data = json_data["response"][0]
     l_standings = d_data["league"]["standings"]
     l_mess = []
@@ -11,7 +11,7 @@ def handle_data_standing(json_data):
         team_id = team['team']['id']
         rank = team['rank']
         name = f'<img align="left" width="28" height="28" src="{logo}">'+\
-                f'<a href="/teams/{team_id}">' + team['team']["name"] + "</a>"
+                f'<a href="/teams/{team_id}/{n_season}/{s_league}">' + team['team']["name"] + "</a>"
         point = '<b>'+str(team["points"])+'</b>'
         description = team["description"]
         match = team["all"]["played"]
@@ -53,19 +53,19 @@ def handle_data_team_info(json_data):
         ["Founded",founded],["Stadium",stadium],
         ["Address",address],["City",city],
         ["Capacity",capacity],["Surface",surface],
-        ["",image]
+        ["",image],['<b align="center"> Current Squad</b>']
         ]
     message = tabulate(l_mess,tablefmt='html')
     return message
 
-def handle_data_squad(json_data,):
+def handle_data_squad(json_data,s_league,n_season):
     d_data = json_data["response"][0]
     l_mess = []
     for data in d_data["players"]:
         player_id = data["id"]
         photo = data["photo"]
         name_player = f'<img align="left" width="38" height="38" src="{photo}">' +\
-                f'<a href="/players/{player_id}">' + data["name"] + "</a>"
+                f'<a href="/players/{player_id}/{n_season}/{s_league}">' + data["name"] + "</a>"
         age = data["age"]
         no = data["number"]
         position = data["position"]
@@ -124,7 +124,7 @@ def handle_data_top_score(json_data,this_season,this_league):
         name = f'<img align="left" width="38" height="38" src="{photo}">' +\
                 f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
         club = f'<img align="left" width="28" height="28" src="{logo}">'+\
-                f'<a href="/teams/{team_id}">' + data["statistics"][0]['team']["name"] + "</a>"
+                f'<a href="/teams/{team_id}/{this_season}/{this_league}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]
         date = int(date.split("-")[0])

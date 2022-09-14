@@ -1,23 +1,23 @@
 import http.client
 import os
 import json
-import redis
-import datetime
-
 from flask import Flask, render_template, request, redirect, url_for
-from tabulate import tabulate
+# from tabulate import tabulate
 from dotenv import load_dotenv
-
 from handle_data import handle_data_standing, handle_data_team_info,handle_data_squad, handle_data_top_score, handle_data_player_info
+import pymongo
 
 load_dotenv()
 
-HOST = os.getenv("host")
-PASSWORD = os.getenv("password")
+# HOST = os.getenv("host")
+# PASSWORD = os.getenv("password")
 API_HOST = os.getenv("x-rapidapi-host")
 API_KEY = os.getenv("x-rapidapi-key")
-redis_server = redis.Redis(host=HOST, port=6379, db=0, password=PASSWORD)
-all_keys = redis_server.keys()
+USERMONGO = os.getenv("username")
+PASSMONGO = os.getenv("password")
+
+myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
+my_db = myclient['football']
 
 conn = http.client.HTTPSConnection("v3.football.api-sports.io")
 headers = {
@@ -35,49 +35,19 @@ d_league = {
 
 app = Flask(__name__)
 
-def get_all_key_redis():
-    all_keys = redis_server.keys()
-    all_keys = [key.decode("utf-8") for key in all_keys]
-    # print(all_keys)
-    return all_keys
+def save_in_mongo(coll_name,data):
+    my_coll = my_db[coll_name]
+    my_coll.insert_one(data)
 
-def get_value_redis(str_key):
-    d_b_value = redis_server.hgetall(str_key)
-    d_value = {k.decode("utf-8"):v.decode("utf-8") for k,v in d_b_value.items()}
-    return d_value
-
-def save_in_redis(keyy,d_value):
-    print(type(d_value))
-    # valuee = json.dumps(d_value,indent=2).encode("utf-8")
-    valuee = json.dumps(d_value)
-    valuee = {"value":valuee}
-    time = datetime.datetime.now()
-    this_year = time.year
-    that_year = this_year - 1
-    try:
-        with redis_server.pipeline() as pipe:
-            # save key in redis
-            pipe.hmset(keyy, valuee)
-            # expire key
-            print("keyy",keyy)
-            if str(this_year) in keyy or str(that_year) in keyy:
-                pipe.expire(keyy,86400)
-            pipe.execute()
-        redis_server.bgsave()
-    except Exception as e:
-        print(e)
-    print("save done")
-
-def get_data_redis(s_key):
-    json_data = get_value_redis(s_key)
-    # print(json_data,type(json_data))
-    json_data = json.loads(json_data["value"])
-    # print(l_standings)
-    return json_data
+def get_data_mongo(coll_name,query):
+    mycol = my_db[coll_name]
+    mydoc = mycol.find(query)
+    for data in mydoc:
+        return data
 
 def json_process(query):
     conn.request("GET", query, headers=headers)
-    print(query)
+    # print(query)
     res = conn.getresponse()
     data = res.read()
     d_json = json.loads(data.decode("utf-8"))
@@ -85,7 +55,7 @@ def json_process(query):
 
 def get_data_standing(season,league_value): 
     league_id = d_league[league_value]
-    print(league_id)
+    # print(league_id)
     query = f"/standings?league={league_id}&season={season}"
     json_data = json_process(query)
     return json_data
@@ -132,24 +102,30 @@ def get_squads(team_id):
     json_data = json_process(query)
     return json_data
 
+def get_this_season():
+    query = "/teams/seasons?team=33"
+    json_data = json_process(query)
+    # print(json_data)
+    n_this_season = json_data["response"][-1]
+    return n_this_season
+
 # =============== ROUTE ==================================
 # Site standing of league
 @app.route("/standing/<n_season>/<s_league>",methods=["GET","POST"])
 def standing_(n_season, s_league):
-    str_key = n_season+"_"+s_league
-    print("==>",str_key)
-    list_keys = get_all_key_redis()
-    #check data in redis
-    if str_key in list_keys:
-        dic_data = get_data_redis(str_key)
-        list_data = handle_data_standing(dic_data)
+    my_query = {"parameters": {"league":d_league[s_league],"season":str(n_season)}}
+    d_result = get_data_mongo("standing",my_query)
+    # check data in mongo
+    if d_result is not None:
+        dic_data = d_result
+        list_data = handle_data_standing(dic_data,s_league,n_season)
     #get data from api-football
     else:
         dic_data = get_data_standing(n_season,s_league)
-        save_in_redis(str_key,dic_data)
-        list_data = handle_data_standing(dic_data)
-    # list_data = get_data_standing(n_season,s_league)
+        save_in_mongo("standing",dic_data)
+        list_data = handle_data_standing(dic_data,s_league,n_season)
     league_season = get_name_season_league(dic_data)
+    # print(list_data)
     list_data = list_data.replace('&lt;','<')
     list_data = list_data.replace('&gt;','>')
     list_data = list_data.replace('&quot;','"')
@@ -157,49 +133,53 @@ def standing_(n_season, s_league):
     return render_template("standing.html",listitem=list_data, n_season=n_season,s_league=s_league,
             league=league_season[0],season=league_season[1], logo_image=league_season[2])
 
-@app.route("/teams/<team_id>",methods=["GET","POST"])
-def team_infomation(team_id):
-    str_key = "Team_"+team_id
-    str_key_squad = "Team_squad_"+team_id
-    list_keys = get_all_key_redis()
-    #check data in redis
-    if str_key in list_keys:
-        dic_data = get_data_redis(str_key)
-        list_data = handle_data_team_info(dic_data)
-        squad_data = get_squads(team_id)
-        l_data = handle_data_squad(squad_data)
+@app.route("/teams/<team_id>/<n_season>/<s_league>",methods=["GET","POST"])
+def team_infomation(team_id,s_league,n_season):
+    this_season = get_this_season()
+    team_query = {"parameters": {"id":str(team_id)}}
+    squad_query = {"parameters": {"team":str(team_id)}}
+    team_result = get_data_mongo("teams",team_query)
+    squad_result = get_data_mongo("squads",squad_query)
+    n_season = this_season
+    
     #get data from api-football
-    else:
-        dic_data = get_team_info(team_id)
-        save_in_redis(str_key,dic_data)
-        list_data = handle_data_team_info(dic_data)
+    if team_result is None or squad_result is None:
+        team_data = get_team_info(team_id)
+        list_team_data = handle_data_team_info(team_data)
+        save_in_mongo("teams",team_data)
         squad_data = get_squads(team_id)
-        l_data = handle_data_squad(squad_data)
-    list_data = list_data.replace('&lt;','<')
-    list_data = list_data.replace('&gt;','>')
-    list_data = list_data.replace('&quot;','"')
-    list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    l_data = l_data.replace('&lt;','<')
-    l_data = l_data.replace('&gt;','>')
-    l_data = l_data.replace('&quot;','"')
-    l_data = l_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
+        list_squad_data = handle_data_squad(squad_data,s_league,n_season)
+        save_in_mongo("squads",squad_data)
+    # check data in mongo
+    else:
+        list_team_data = handle_data_team_info(team_result)
+        list_squad_data = handle_data_squad(squad_result,s_league,n_season)
 
-    # print(list_data+l_data)
-    return render_template("team_info.html",listitem=list_data + l_data)
+    list_team_data = list_team_data.replace('&lt;','<')
+    list_team_data = list_team_data.replace('&gt;','>')
+    list_team_data = list_team_data.replace('&quot;','"')
+    list_team_data = list_team_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
+    list_squad_data = list_squad_data.replace('&lt;','<')
+    list_squad_data = list_squad_data.replace('&gt;','>')
+    list_squad_data = list_squad_data.replace('&quot;','"')
+    list_squad_data = list_squad_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
+    return render_template("team_info.html",listitem = list_team_data + list_squad_data)
 
 @app.route("/players/<player_id>/<n_season>/<s_league>",methods=["GET","POST"])
 def player_infomation(n_season,s_league,player_id):
-    str_key = f'Player_{player_id}_{n_season}_{s_league}'
-    list_keys = get_all_key_redis()
-    #check data in redis
-    if str_key in list_keys:
-        dic_data = get_data_redis(str_key)
-        list_data = handle_data_player_info(dic_data)
-    #get data from api-football
-    else:
+    my_query = {"parameters": {"id":str(player_id),"season":str(n_season)}}
+    d_result = get_data_mongo("players",my_query)
+    # list_keys = get_all_key_redis()
+    # get data from api-football
+    if d_result is None:
         dic_data = get_player_info(player_id,n_season)
-        save_in_redis(str_key,dic_data)
+        save_in_mongo("players",dic_data)
         list_data = handle_data_player_info(dic_data)
+    # check data in mongo
+    else:
+        dic_data = d_result
+        list_data = handle_data_player_info(dic_data)
+
     list_data = list_data.replace('&lt;','<')
     list_data = list_data.replace('&gt;','>')
     list_data = list_data.replace('&quot;','"')
@@ -208,18 +188,19 @@ def player_infomation(n_season,s_league,player_id):
 
 @app.route("/topscorers/<n_season>/<s_league>",methods=["GET","POST"]) 
 def topscorers(n_season, s_league):
-    str_key = "TopScore-"+n_season+"_"+s_league
-    print("==>",str_key)
-    list_keys = get_all_key_redis()
-    #check data in redis
-    if str_key in list_keys:
-        dic_data = get_data_redis(str_key)
-        list_data = handle_data_top_score(dic_data,n_season,s_league)
+    my_query = {"parameters": {"season":str(n_season),"league":d_league[s_league]}}
+    d_result = get_data_mongo("topscorers",my_query)
+
     #get data from api-football
-    else:
+    if d_result is None:
+        print("None")
         dic_data = get_top_score(n_season,s_league)
-        save_in_redis(str_key,dic_data)
+        save_in_mongo("topscorers",dic_data)
         list_data = handle_data_top_score(dic_data,n_season,s_league)
+    # check data in mongo
+    else:
+        dic_data = d_result
+        list_data = handle_data_top_score(d_result,n_season,s_league)
     
     league_season = get_season_name(dic_data)
     print(n_season,type(n_season),s_league,type(s_league))
