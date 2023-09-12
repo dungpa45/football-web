@@ -4,6 +4,7 @@ import json
 from flask import Flask, render_template, request, redirect, url_for
 # from tabulate import tabulate
 from dotenv import load_dotenv
+from datetime import datetime
 from handle_data import handle_data_standing, handle_data_team_info,handle_data_squad, handle_data_top_score, handle_data_player_info
 import pymongo
 
@@ -103,6 +104,9 @@ def get_squads(team_id):
     return json_data
 
 def get_this_season():
+    currentYear = datetime.now().year
+    data = {"season":str(currentYear+1)}
+    save_in_mongo("current_season",data)
     my_coll = my_db["current_season"]
     n_this_season = my_coll.find_one()["season"]
     return n_this_season
