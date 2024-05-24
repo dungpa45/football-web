@@ -134,10 +134,11 @@ def handle_data_top_score(json_data,this_season,this_league):
         rating = data["statistics"][0]["games"]["rating"]
         goals = data["statistics"][0]["goals"]["total"]
         assists = data["statistics"][0]["goals"]["assists"]
+        ga = goals + assists
         goals = '<b>'+str(goals)+'</b>'
-        list_topscore = [rank,name,age,club,nationality,goals,assists,appearences,rating]
+        list_topscore = [rank,name,age,club,nationality,goals,assists,ga,appearences,rating]
         rank+=1
         l_mess.append(list_topscore)
-    list_headers = ["Rank","Name","Age","Club","Country","Goals","Assists","App","Rating"]
+    list_headers = ["Rank","Name","Age","Club","Country","Goals","Assists","GA","App","Rating"]
     message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
     return message
