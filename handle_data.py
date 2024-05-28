@@ -142,3 +142,36 @@ def handle_data_top_score(json_data,this_season,this_league):
     list_headers = ["Rank","Name","Age","Club","Country","Goals","Assists","GA","App","Rating"]
     message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
     return message
+
+# Xu ly data top assist
+def handle_data_top_assist(json_data,this_season,this_league):
+    d_data = json_data["response"]
+    rank = 1
+    this_season
+    l_mess = []
+    for data in d_data:
+        photo = data["player"]["photo"]
+        player_id = data["player"]["id"]
+        team_id = data["statistics"][0]['team']['id']
+        logo = data["statistics"][0]["team"]["logo"]
+        name = f'<img align="left" width="38" height="38" src="{photo}">' +\
+                f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
+        club = f'<img align="left" width="28" height="28" src="{logo}">'+\
+                f'<a href="/teams/{team_id}/{this_season}/{this_league}">' + data["statistics"][0]['team']["name"] + "</a>"
+        # age = data["player"]["age"]
+        date = data["player"]["birth"]["date"]
+        date = int(date.split("-")[0])
+        age = int(this_season) - date
+        nationality = data["player"]["nationality"]
+        appearences = data["statistics"][0]["games"]["appearences"]
+        rating = data["statistics"][0]["games"]["rating"]
+        goals = data["statistics"][0]["goals"]["total"] or 0
+        assists = data["statistics"][0]["goals"]["assists"] or 0
+        ga = goals + assists
+        assists = '<b>'+str(assists)+'</b>'
+        list_topassist = [rank,name,age,club,nationality,assists,goals,ga,appearences,rating]
+        rank+=1
+        l_mess.append(list_topassist)
+    list_headers = ["Rank","Name","Age","Club","Country","Assists","Goals","GA","App","Rating"]
+    message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
+    return message

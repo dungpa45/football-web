@@ -6,7 +6,7 @@ from flask import Flask, render_template, request, redirect, url_for
 # from tabulate import tabulate
 from dotenv import load_dotenv
 from datetime import datetime
-from handle_data import handle_data_standing, handle_data_team_info,handle_data_squad, handle_data_top_score, handle_data_player_info
+from handle_data import *
 import pymongo
 
 load_dotenv()
@@ -18,8 +18,8 @@ API_KEY = os.getenv("x-rapidapi-key")
 USERMONGO = os.getenv("username")
 PASSMONGO = os.getenv("password")
 
-myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
-# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
+# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
+myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
 my_db = myclient['football']
 
 
@@ -69,6 +69,12 @@ def get_top_score(season,league_value):
     # print("####################",league_value)
     league_id = d_league[league_value]
     query = f"/players/topscorers?season={season}&league={league_id}"
+    json_data = json_process(query)
+    return json_data
+
+def get_top_assist(season,league_value):
+    league_id = d_league[league_value]
+    query = f"/players/topassists?season={season}&league={league_id}"
     json_data = json_process(query)
     return json_data
 
@@ -248,6 +254,38 @@ def topscorers(n_season, s_league):
             league=league_season[0],season=league_season[1], logo_image=league_season[2]
     )
 
+@app.route("/topassists/<n_season>/<s_league>",methods=["GET","POST"]) 
+def topassists(n_season, s_league):
+    this_season = get_this_season()
+    my_query = {"parameters": {"season":str(n_season),"league":d_league[s_league]}}
+    d_result = get_data_mongo("topassists",my_query)
+
+    #get data from api-football
+    if d_result is None:
+        print("None")
+        dic_data = get_top_assist(n_season,s_league)
+        save_in_mongo("topassists",dic_data)
+        list_data = handle_data_top_assist(dic_data,n_season,s_league)
+    # check data in mongo
+    else:
+        # if this_season == n_season:
+        #     dic_data = get_top_score(n_season,s_league)
+        #     save_in_mongo("topscorers",dic_data)
+        #     list_data = handle_data_top_score(dic_data,n_season,s_league)
+        # else:
+        dic_data = d_result
+        list_data = handle_data_top_assist(d_result,n_season,s_league)
+    
+    league_season = get_season_name(dic_data)
+    print(n_season,type(n_season),s_league,type(s_league))
+    list_data = list_data.replace('&lt;','<')
+    list_data = list_data.replace('&gt;','>')
+    list_data = list_data.replace('&quot;','"')
+    list_data = list_data.replace('<table>','<table id="TopAssistTable" class="w3-table-all w3-medium sortable">')
+    return render_template("topassist.html",listitem=list_data,n_season=n_season,s_league=s_league,
+            league=league_season[0],season=league_season[1], logo_image=league_season[2]
+    )
+
 @app.route("/",methods=["GET","POST"])
 def main():
     if request.method == "GET":
@@ -260,6 +298,8 @@ def main():
             return redirect(url_for('standing_',n_season=n_season,s_league=s_league))
         elif request.form.get("action") == "TopScore":
             return redirect(url_for('topscorers',n_season=n_season,s_league=s_league))
+        elif request.form.get("action") == "TopAssist":
+            return redirect(url_for('topassists',n_season=n_season,s_league=s_league))
 
 if __name__ == "__main__":
     app.run(debug=True,host="0.0.0.0")
