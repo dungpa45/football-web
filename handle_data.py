@@ -132,8 +132,8 @@ def handle_data_top_score(json_data,this_season,this_league):
         nationality = data["player"]["nationality"]
         appearences = data["statistics"][0]["games"]["appearences"]
         rating = data["statistics"][0]["games"]["rating"]
-        goals = data["statistics"][0]["goals"]["total"]
-        assists = data["statistics"][0]["goals"]["assists"]
+        goals = data["statistics"][0]["goals"]["total"] or 0
+        assists = data["statistics"][0]["goals"]["assists"] or 0
         ga = goals + assists
         goals = '<b>'+str(goals)+'</b>'
         list_topscore = [rank,name,age,club,nationality,goals,assists,ga,appearences,rating]
