@@ -18,8 +18,8 @@ API_KEY = os.getenv("x-rapidapi-key")
 USERMONGO = os.getenv("username")
 PASSMONGO = os.getenv("password")
 
-# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
-myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
+myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
+# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
 my_db = myclient['football']
 
 
@@ -105,6 +105,11 @@ def get_team_info(team_id):
 
 def get_player_info(player_id, n_season):
     query = f"/players?id={player_id}&season={n_season}"
+    json_data = json_process(query)
+    return json_data
+
+def get_player_tropies(player_id):
+    query = f"/trophies?player={player_id}"
     json_data = json_process(query)
     return json_data
 
@@ -203,18 +208,22 @@ def team_infomation(team_id,s_league,n_season):
 
 @app.route("/players/<player_id>/<n_season>/<s_league>",methods=["GET","POST"])
 def player_infomation(n_season,s_league,player_id):
-    my_query = {"parameters": {"id":str(player_id),"season":str(n_season)}}
-    d_result = get_data_mongo("players",my_query)
-    # list_keys = get_all_key_redis()
+    player_query = {"parameters": {"id":str(player_id),"season":str(n_season)}}
+    trophies_query = {"parameters": {"player":str(player_id)}}
+    d_player_result = get_data_mongo("players",player_query)
+    d_trophies_result = get_data_mongo("trophies",trophies_query)
     # get data from api-football
-    if d_result is None:
+    if d_player_result is None or d_trophies_result is None:
         dic_data = get_player_info(player_id,n_season)
         save_in_mongo("players",dic_data)
-        list_data = handle_data_player_info(dic_data)
+        d_trophies_data = get_player_tropies(player_id)
+        print("data cup")
+        save_in_mongo("trophies",d_trophies_data)
+        list_data = handle_data_player_info(dic_data,d_trophies_data)
     # check data in mongo
     else:
-        dic_data = d_result
-        list_data = handle_data_player_info(dic_data)
+        dic_data = d_player_result
+        list_data = handle_data_player_info(dic_data,d_trophies_result)
 
     list_data = list_data.replace('&lt;','<')
     list_data = list_data.replace('&gt;','>')

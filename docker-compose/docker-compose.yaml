@@ -30,7 +30,7 @@ services:
 
   football-app:
     container_name: football-app
-    image: dung4597/app-football:2024new
+    image: dung4597/app-football:2024
     depends_on:
       - mongodb
     ports:

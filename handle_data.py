@@ -75,8 +75,8 @@ def handle_data_squad(json_data,s_league,n_season):
     message = tabulate(l_mess, headers=list_headers, tablefmt='html', colalign=("left" for i in list_headers))
     return message
 
-def handle_data_player_info(json_data):
-    # print(json_data["response"][0])
+def handle_data_player_info(json_data,json_trophy_data):
+    # Player data
     d_data = json_data["response"][0]["player"]
     d_stat = json_data["response"][0]["statistics"][0]
     season = json_data["parameters"]["season"]
@@ -89,7 +89,8 @@ def handle_data_player_info(json_data):
     age = d_data["age"]
     nation = d_data["nationality"]
     birth = d_data["birth"]["date"]
-    birth_place = d_data["birth"]["place"] +" - "+ d_data["birth"]["country"]
+    place_ = d_data["birth"]["place"] or ""
+    birth_place = place_ +" - "+ d_data["birth"]["country"]
     height = d_data["height"]
     weight = d_data["weight"]
     team = d_stat["team"]["name"]
@@ -97,6 +98,9 @@ def handle_data_player_info(json_data):
     position = d_stat["games"]["position"]
     rating = d_stat["games"]["rating"]
     goals_assist = str(d_stat["goals"]["total"]) + "/" + str(d_stat["goals"]["assists"])
+    # trophies data
+    l_data = json_trophy_data["response"]
+    no = 1
     l_mess = [
         ["",image],
         ["Player Name",full_name],["Position",position],
@@ -105,8 +109,20 @@ def handle_data_player_info(json_data):
         ["Weight",weight],["Current team",team],
         ["This season stats",this_season],
         ["Appearences / Lineups", appear],["Rating", rating],
-        ["Goals / Assists", goals_assist]
+        ["Goals / Assists", goals_assist],
+        ["Trophies"]
         ]
+    for trophy in l_data:
+        league = trophy["league"]
+        country = trophy["country"]
+        s_season = trophy["season"]
+        place = trophy["place"]
+        if place == "Winner":
+            l_cup = [no, league, s_season, country, place]
+        else:
+            continue
+        no+=1
+        l_mess.append(l_cup)
     message = tabulate(l_mess,tablefmt='html')
     return message
 
