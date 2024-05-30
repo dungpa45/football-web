@@ -4,30 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Football Table</title>
-    <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" />
+    <title>Football Leagues Table</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" />
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-    <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
-    <style>
-        body {
-            background-image: url('static/home_image.png');
-            background-repeat: no-repeat;
-            background-size: cover;
-            }
-        h2,label {
-            color: aliceblue;
-            text-decoration: aliceblue;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='home-style.css') }}">
 </head>
 
-
 <body>
-    <div style="text-align: center;">
+    <div class="container">
         <h2>Football Leagues Table</h2>
-
         <form action="/" method="POST">
-            <label for="league">League:</label><br>
+            <label for="league">League:</label>
             <select name="league" id="league">
                 <option value="epl">English Premier League</option>
                 <option value="laliga">La Liga</option>
@@ -35,8 +22,7 @@
                 <option value="bundes">Bundesliga</option>
                 <option value="ligue1">Ligue 1</option>
             </select>
-            <br><br>
-            <label for="season">Season:</label><br>
+            <label for="season">Season:</label>
             <select name="season" id="season">
                 <option value="2010">2010-2011</option>
                 <option value="2011">2011-2012</option>
@@ -53,7 +39,6 @@
                 <option value="2022">2022-2023</option>
                 <option value="2023" selected>2023-2024</option>
             </select>
-            <br><br>
             <input type="submit" name="action" value="Standings">
             <input type="submit" name="action" value="TopScore">
             <input type="submit" name="action" value="TopAssist">

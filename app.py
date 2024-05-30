@@ -1,6 +1,4 @@
-import http.client
 import os
-import json
 import requests
 from flask import Flask, render_template, request, redirect, url_for
 # from tabulate import tabulate
@@ -174,6 +172,7 @@ def standing_(n_season, s_league):
     return render_template("standing.html",listitem=list_data, n_season=n_season,s_league=s_league,
             league=league_season[0],season=league_season[1], logo_image=league_season[2])
 
+# Site team of league
 @app.route("/teams/<team_id>/<n_season>/<s_league>",methods=["GET","POST"])
 def team_infomation(team_id,s_league,n_season):
     this_season = get_this_season()
@@ -196,41 +195,41 @@ def team_infomation(team_id,s_league,n_season):
         list_team_data = handle_data_team_info(team_result)
         list_squad_data = handle_data_squad(squad_result,s_league,n_season)
 
-    list_team_data = list_team_data.replace('&lt;','<')
-    list_team_data = list_team_data.replace('&gt;','>')
-    list_team_data = list_team_data.replace('&quot;','"')
+    list_team_data = list_team_data.replace('&lt;','<').replace('&gt;', '>').replace('&quot;', '"')
     list_team_data = list_team_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    list_squad_data = list_squad_data.replace('&lt;','<')
-    list_squad_data = list_squad_data.replace('&gt;','>')
-    list_squad_data = list_squad_data.replace('&quot;','"')
+    list_squad_data = list_squad_data.replace('&lt;','<').replace('&gt;', '>').replace('&quot;', '"')
     list_squad_data = list_squad_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    return render_template("team_info.html",listitem = list_team_data + list_squad_data)
+    return render_template("team_info.html",listitem = list_team_data, list_squad=list_squad_data)
 
+# Site player info's of league
 @app.route("/players/<player_id>/<n_season>/<s_league>",methods=["GET","POST"])
 def player_infomation(n_season,s_league,player_id):
     player_query = {"parameters": {"id":str(player_id),"season":str(n_season)}}
     trophies_query = {"parameters": {"player":str(player_id)}}
-    d_player_result = get_data_mongo("players",player_query)
-    d_trophies_result = get_data_mongo("trophies",trophies_query)
+    d_player_mongo = get_data_mongo("players",player_query)
+    d_trophies_mongo = get_data_mongo("trophies",trophies_query)
     # get data from api-football
-    if d_player_result is None or d_trophies_result is None:
+    if d_player_mongo is None or d_trophies_mongo is None:
         dic_data = get_player_info(player_id,n_season)
         save_in_mongo("players",dic_data)
         d_trophies_data = get_player_tropies(player_id)
         print("data cup")
+        list_data = handle_data_player_info(dic_data)
+        list_trop_data = handle_data_trophies(d_trophies_data)[0]
         save_in_mongo("trophies",d_trophies_data)
-        list_data = handle_data_player_info(dic_data,d_trophies_data)
     # check data in mongo
     else:
-        dic_data = d_player_result
-        list_data = handle_data_player_info(dic_data,d_trophies_result)
+        list_data = handle_data_player_info(d_player_mongo)
+        list_trop_data = handle_data_trophies(d_trophies_mongo)[0]
 
-    list_data = list_data.replace('&lt;','<')
-    list_data = list_data.replace('&gt;','>')
-    list_data = list_data.replace('&quot;','"')
+    list_data = list_data.replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"')
     list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    return render_template("player_info.html",listitem=list_data)
+    list_trop_data = list_trop_data.replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"')
+    list_trop_data = list_trop_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
+    num_trophies = handle_data_trophies(d_trophies_mongo)[1]
+    return render_template("player_info.html",listitem = list_data, list_trop = list_trop_data, no_trophies=num_trophies)
 
+# Site topscorers of league
 @app.route("/topscorers/<n_season>/<s_league>",methods=["GET","POST"]) 
 def topscorers(n_season, s_league):
     this_season = get_this_season()
@@ -263,6 +262,7 @@ def topscorers(n_season, s_league):
             league=league_season[0],season=league_season[1], logo_image=league_season[2]
     )
 
+# Site topassists of league
 @app.route("/topassists/<n_season>/<s_league>",methods=["GET","POST"]) 
 def topassists(n_season, s_league):
     this_season = get_this_season()
@@ -295,6 +295,7 @@ def topassists(n_season, s_league):
             league=league_season[0],season=league_season[1], logo_image=league_season[2]
     )
 
+# Site homepage
 @app.route("/",methods=["GET","POST"])
 def main():
     if request.method == "GET":

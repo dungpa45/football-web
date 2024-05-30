@@ -28,9 +28,23 @@
         <img width="48" height="auto" src={{logo_image}}><label>  {{league}}  </label>
     </div>
     <div id="standings" class="w3-container">
-        <table id="TeamInfo" class="w3-table-all w3-medium">
+        <table  id="TeamInfo" class="w3-table-all w3-medium">
             {% autoescape false %}
             {{listitem}}
+            {% endautoescape %}
+
+        </table>
+        <!-- <table id="TeamInfo" class="w3-table-all w3-medium">
+            {% autoescape false %}
+            {{list_squad}}
+            {% endautoescape %}
+
+        </table> -->
+    </div>
+    <div id="standings" class="w3-container">
+        <table id="TeamInfo" class="w3-table-all w3-medium">
+            {% autoescape false %}
+            {{list_squad}}
             {% endautoescape %}
 
         </table>

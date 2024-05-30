@@ -17,20 +17,43 @@
             // $("#footer").load("footer.html");
         });
     </script>
+    <style>
+        #Trophy {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            background-color: #0073e6;
+            color: white;
+            padding: 5px;
+            font-size: 20px;
+        }
+        #standings {
+            max-width: 900px;
+        }
+    </style>
 </head>
 
 <body>
     {% include "header.html" %}
-    <div style="text-align: center; font-weight: bold; font-size: larger;">
-        <img width="48" height="auto" src={{logo_image}}><label>  {{player}}  </label>
+
+    <div id="standings" class="w3-container",style="overflow-x:auto;">
+        
+        {% autoescape false %}
+        {{listitem}}
+        {% endautoescape %}
+        
     </div>
     <div id="standings" class="w3-container">
-        <table id="TeamInfo" class="w3-table-all w3-medium">
-            {% autoescape false %}
-            {{listitem}}
-            {% endautoescape %}
-
-        </table>
+        <div id="Trophy">
+            <b>Trophies ({{no_trophies}})</b>
+        </div>
+    </div>
+    <div id="standings" class="w3-container",style="overflow-x:auto;">
+    
+        {% autoescape false %}
+        {{ list_trop }}
+        {% endautoescape %}
+        
     </div>
  
 </body>

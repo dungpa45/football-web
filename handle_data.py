@@ -75,7 +75,7 @@ def handle_data_squad(json_data,s_league,n_season):
     message = tabulate(l_mess, headers=list_headers, tablefmt='html', colalign=("left" for i in list_headers))
     return message
 
-def handle_data_player_info(json_data,json_trophy_data):
+def handle_data_player_info(json_data):
     # Player data
     d_data = json_data["response"][0]["player"]
     d_stat = json_data["response"][0]["statistics"][0]
@@ -98,9 +98,6 @@ def handle_data_player_info(json_data,json_trophy_data):
     position = d_stat["games"]["position"]
     rating = d_stat["games"]["rating"]
     goals_assist = str(d_stat["goals"]["total"]) + "/" + str(d_stat["goals"]["assists"])
-    # trophies data
-    l_data = json_trophy_data["response"]
-    no = 1
     l_mess = [
         ["",image],
         ["Player Name",full_name],["Position",position],
@@ -109,22 +106,31 @@ def handle_data_player_info(json_data,json_trophy_data):
         ["Weight",weight],["Current team",team],
         ["This season stats",this_season],
         ["Appearences / Lineups", appear],["Rating", rating],
-        ["Goals / Assists", goals_assist],
-        ["Trophies"]
+        ["Goals / Assists", goals_assist]
         ]
+    message = tabulate(l_mess,tablefmt='html')
+    return message
+
+# Xu ly data trophy
+def handle_data_trophies(json_trophy_data):
+    l_data = json_trophy_data["response"]
+    no = 1
+    l_mess = []
     for trophy in l_data:
         league = trophy["league"]
         country = trophy["country"]
-        s_season = trophy["season"]
+        s_season = " ("+trophy["season"]+")"
         place = trophy["place"]
         if place == "Winner":
-            l_cup = [no, league, s_season, country, place]
+            trophy = str(no)+" - "+league+s_season
+            l_cup = [trophy, country]
         else:
             continue
         no+=1
         l_mess.append(l_cup)
-    message = tabulate(l_mess,tablefmt='html')
-    return message
+    no_trophies = no -1
+    message = tabulate(l_mess, tablefmt='html')
+    return message, no_trophies
 
 # Xu ly data top score
 def handle_data_top_score(json_data,this_season,this_league):
