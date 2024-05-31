@@ -1,25 +1,21 @@
 import os
 import requests
+import pymongo
 from flask import Flask, render_template, request, redirect, url_for
-# from tabulate import tabulate
 from dotenv import load_dotenv
 from datetime import datetime
 from handle_data import *
-import pymongo
 
 load_dotenv()
 
-# HOST = os.getenv("host")
-# PASSWORD = os.getenv("password")
 API_HOST = os.getenv("x-rapidapi-host")
 API_KEY = os.getenv("x-rapidapi-key")
 USERMONGO = os.getenv("username")
 PASSMONGO = os.getenv("password")
 
-myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
-# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
+# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
+myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
 my_db = myclient['football']
-
 
 headers = {
     'x-rapidapi-host': API_HOST,
@@ -55,6 +51,10 @@ def json_process(query):
     res = requests.request("GET", "https://"+API_HOST+query, headers=headers)
     d_json = res.json()
     return d_json
+
+def html_replace(data):
+    data_html = data.replace('&lt;','<').replace('&gt;','>').replace('&quot;','"').replace('<table>','').replace('</table>','')
+    return data_html
 
 def get_data_standing(season,league_value): 
     league_id = d_league[league_value]
@@ -165,10 +165,7 @@ def standing_(n_season, s_league):
         list_data = handle_data_standing(dic_data,s_league,n_season)
     league_season = get_name_season_league(dic_data)
     # print(list_data)
-    list_data = list_data.replace('&lt;','<')
-    list_data = list_data.replace('&gt;','>')
-    list_data = list_data.replace('&quot;','"')
-    list_data = list_data.replace('<table>','<table id="myTableLeague" class="w3-table-all w3-medium sortable">')
+    list_data = html_replace(list_data)
     return render_template("standing.html",listitem=list_data, n_season=n_season,s_league=s_league,
             league=league_season[0],season=league_season[1], logo_image=league_season[2])
 
@@ -195,11 +192,10 @@ def team_infomation(team_id,s_league,n_season):
         list_team_data = handle_data_team_info(team_result)
         list_squad_data = handle_data_squad(squad_result,s_league,n_season)
 
-    list_team_data = list_team_data.replace('&lt;','<').replace('&gt;', '>').replace('&quot;', '"')
-    list_team_data = list_team_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    list_squad_data = list_squad_data.replace('&lt;','<').replace('&gt;', '>').replace('&quot;', '"')
-    list_squad_data = list_squad_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    return render_template("team_info.html",listitem = list_team_data, list_squad=list_squad_data)
+    list_team_data = html_replace(list_team_data)
+    list_squad_data = html_replace(list_squad_data)
+    return render_template("team_info.html",listitem = list_team_data, list_squad=list_squad_data,
+                           n_season=n_season,s_league=s_league)
 
 # Site player info's of league
 @app.route("/players/<player_id>/<n_season>/<s_league>",methods=["GET","POST"])
@@ -215,19 +211,18 @@ def player_infomation(n_season,s_league,player_id):
         d_trophies_data = get_player_tropies(player_id)
         print("data cup")
         list_data = handle_data_player_info(dic_data)
-        list_trop_data = handle_data_trophies(d_trophies_data)[0]
+        list_trop_data = handle_data_trophies(d_trophies_data)
         save_in_mongo("trophies",d_trophies_data)
     # check data in mongo
     else:
         list_data = handle_data_player_info(d_player_mongo)
-        list_trop_data = handle_data_trophies(d_trophies_mongo)[0]
+        list_trop_data = handle_data_trophies(d_trophies_mongo)
 
-    list_data = list_data.replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"')
-    list_data = list_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    list_trop_data = list_trop_data.replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"')
-    list_trop_data = list_trop_data.replace('<table>','<table id="myTable" class="w3-table-all w3-medium">')
-    num_trophies = handle_data_trophies(d_trophies_mongo)[1]
-    return render_template("player_info.html",listitem = list_data, list_trop = list_trop_data, no_trophies=num_trophies)
+    list_data = html_replace(list_data)
+    l_trop_data = html_replace(list_trop_data[0])
+    num_trophies = list_trop_data[1]
+    return render_template("player_info.html",listitem = list_data, list_trop = l_trop_data, no_trophies=num_trophies, 
+                           n_season=n_season,s_league=s_league)
 
 # Site topscorers of league
 @app.route("/topscorers/<n_season>/<s_league>",methods=["GET","POST"]) 
@@ -254,10 +249,7 @@ def topscorers(n_season, s_league):
     
     league_season = get_season_name(dic_data)
     print(n_season,type(n_season),s_league,type(s_league))
-    list_data = list_data.replace('&lt;','<')
-    list_data = list_data.replace('&gt;','>')
-    list_data = list_data.replace('&quot;','"')
-    list_data = list_data.replace('<table>','<table id="TopScoreTable" class="w3-table-all w3-medium sortable">')
+    list_data = html_replace(list_data)
     return render_template("topscore.html",listitem=list_data,n_season=n_season,s_league=s_league,
             league=league_season[0],season=league_season[1], logo_image=league_season[2]
     )
@@ -287,10 +279,7 @@ def topassists(n_season, s_league):
     
     league_season = get_season_name(dic_data)
     print(n_season,type(n_season),s_league,type(s_league))
-    list_data = list_data.replace('&lt;','<')
-    list_data = list_data.replace('&gt;','>')
-    list_data = list_data.replace('&quot;','"')
-    list_data = list_data.replace('<table>','<table id="TopAssistTable" class="w3-table-all w3-medium sortable">')
+    list_data = html_replace(list_data)
     return render_template("topassist.html",listitem=list_data,n_season=n_season,s_league=s_league,
             league=league_season[0],season=league_season[1], logo_image=league_season[2]
     )

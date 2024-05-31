@@ -48,7 +48,7 @@ def handle_data_team_info(json_data):
     # l_items = [team_name,country,founded,logo,stadium,address,city,capacity,surface,image]
     # l_mess.append(l_items)
     l_mess = [
-        ["Current Squads",logo],
+        ["",logo],
         ["Team Name",team_name],["Country",country],
         ["Founded",founded],["Stadium",stadium],
         ["Address",address],["City",city],
@@ -64,7 +64,7 @@ def handle_data_squad(json_data,s_league,n_season):
     for data in d_data["players"]:
         player_id = data["id"]
         photo = data["photo"]
-        name_player = f'<img align="left" width="38" height="38" src="{photo}">' +\
+        name_player = f'<img align="left" width="38" height="38" src="{photo}" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{n_season}/{s_league}">' + data["name"] + "</a>"
         age = data["age"]
         no = data["number"]
@@ -143,9 +143,9 @@ def handle_data_top_score(json_data,this_season,this_league):
         player_id = data["player"]["id"]
         team_id = data["statistics"][0]['team']['id']
         logo = data["statistics"][0]["team"]["logo"]
-        name = f'<img align="left" width="38" height="38" src="{photo}">' +\
+        name = f'<img align="left" width="38" height="38" src="{photo}" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
-        club = f'<img align="left" width="28" height="28" src="{logo}">'+\
+        club = f'<img align="left" width="28" height="28" src="{logo}" loading="lazy">'+\
                 f'<a href="/teams/{team_id}/{this_season}/{this_league}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]
@@ -176,9 +176,9 @@ def handle_data_top_assist(json_data,this_season,this_league):
         player_id = data["player"]["id"]
         team_id = data["statistics"][0]['team']['id']
         logo = data["statistics"][0]["team"]["logo"]
-        name = f'<img align="left" width="38" height="38" src="{photo}">' +\
+        name = f'<img align="left" width="38" height="38" src="{photo}" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
-        club = f'<img align="left" width="28" height="28" src="{logo}">'+\
+        club = f'<img align="left" width="28" height="28" src="{logo}" loading="lazy">'+\
                 f'<a href="/teams/{team_id}/{this_season}/{this_league}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]

@@ -8,6 +8,10 @@ body {
   margin: 20px auto;
 }
 
+#myTable {
+  table-layout: fixed;
+}
+
 #standings {
   text-align: center;
   font-family: Arial, Helvetica, sans-serif;

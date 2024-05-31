@@ -37,11 +37,11 @@
     {% include "header.html" %}
 
     <div id="standings" class="w3-container",style="overflow-x:auto;">
-        
-        {% autoescape false %}
-        {{listitem}}
-        {% endautoescape %}
-        
+        <table id="myTable" class="w3-table-all w3-medium">
+            {% autoescape false %}
+            {{listitem}}
+            {% endautoescape %}
+        </table>
     </div>
     <div id="standings" class="w3-container">
         <div id="Trophy">
@@ -49,11 +49,11 @@
         </div>
     </div>
     <div id="standings" class="w3-container",style="overflow-x:auto;">
-    
-        {% autoescape false %}
-        {{ list_trop }}
-        {% endautoescape %}
-        
+        <table id="myTable" class="w3-table-all w3-medium">
+            {% autoescape false %}
+            {{ list_trop }}
+            {% endautoescape %}
+        </table>
     </div>
  
 </body>
