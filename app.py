@@ -1,7 +1,7 @@
 import os
 import requests
 import pymongo
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 from dotenv import load_dotenv
 from datetime import datetime
 from handle_data import *
@@ -58,13 +58,11 @@ def html_replace(data):
 
 def get_data_standing(season,league_value): 
     league_id = d_league[league_value]
-    # print(league_id)
     query = f"/standings?league={league_id}&season={season}"
     json_data = json_process(query)
     return json_data
 
 def get_top_score(season,league_value):
-    # print("####################",league_value)
     league_id = d_league[league_value]
     query = f"/players/topscorers?season={season}&league={league_id}"
     json_data = json_process(query)
@@ -128,12 +126,16 @@ def get_this_season():
     # check co data trong mongo voi current_season
     check_data = get_data_mongo("current_season",{"season":str(currentYear)})
     if check_data is None:
-        try:
-            update_in_mongo("current_season",{"season":str(currentYear-1)},data)
-        except:
-            save_in_mongo("current_season",data)
+        save_in_mongo("current_season",data)
+        # try:
+        #     print("data",data)
+        #     update_in_mongo("current_season",{"season":str(currentYear-1)},data)
+        # except:
+        #     print("data",data)
+        #     save_in_mongo("current_season",data)
         n_this_season = currentYear
-    else: 
+    else:
+        update_in_mongo("current_season",{"season":str(currentYear-1)},data)
         my_coll = my_db["current_season"]
         n_this_season = my_coll.find_one()["season"]
     return n_this_season
@@ -142,22 +144,23 @@ def get_this_season():
 # Site standing of league
 @app.route("/standing/<n_season>/<s_league>",methods=["GET","POST"])
 def standing_(n_season, s_league):
-    this_season = get_this_season()
-
+    this_season = str(get_this_season())
+    print("this season",type(this_season))
+    print("n_season",type(n_season))
     my_query = {"parameters": {"league":d_league[s_league],"season":str(n_season)}}
     d_result = get_data_mongo("standing",my_query)
     # check data in mongo
     if d_result is not None:
         dic_data = d_result
         list_data = handle_data_standing(dic_data,s_league,n_season)
-        # if this_season == n_season:
-        #     print("vao day nao")
-        #     # dic_data = get_data_standing(n_season,s_league)
-        #     # save_in_mongo("standing",dic_data)
-        #     list_data = handle_data_standing(dic_data,s_league,n_season)
-        # else:
-        #     dic_data = d_result
-        #     list_data = handle_data_standing(dic_data,s_league,n_season)
+        if this_season == n_season:
+            print("vao day nao")
+            dic_data = get_data_standing(n_season,s_league)
+            save_in_mongo("standing",dic_data)
+            list_data = handle_data_standing(dic_data,s_league,n_season)
+        else:
+            dic_data = d_result
+            list_data = handle_data_standing(dic_data,s_league,n_season)
     #get data from api-football
     else:
         dic_data = get_data_standing(n_season,s_league)
@@ -177,7 +180,6 @@ def team_infomation(team_id,s_league,n_season):
     squad_query = {"parameters": {"team":str(team_id)}}
     team_result = get_data_mongo("teams",team_query)
     squad_result = get_data_mongo("squads",squad_query)
-    n_season = this_season
     
     #get data from api-football
     if team_result is None or squad_result is None:
@@ -221,13 +223,14 @@ def player_infomation(n_season,s_league,player_id):
     list_data = html_replace(list_data)
     l_trop_data = html_replace(list_trop_data[0])
     num_trophies = list_trop_data[1]
+    print(type(n_season),n_season)
     return render_template("player_info.html",listitem = list_data, list_trop = l_trop_data, no_trophies=num_trophies, 
                            n_season=n_season,s_league=s_league)
 
 # Site topscorers of league
 @app.route("/topscorers/<n_season>/<s_league>",methods=["GET","POST"]) 
 def topscorers(n_season, s_league):
-    this_season = get_this_season()
+    this_season = str(get_this_season())
     my_query = {"parameters": {"season":str(n_season),"league":d_league[s_league]}}
     d_result = get_data_mongo("topscorers",my_query)
 
@@ -239,13 +242,13 @@ def topscorers(n_season, s_league):
         list_data = handle_data_top_score(dic_data,n_season,s_league)
     # check data in mongo
     else:
-        # if this_season == n_season:
-        #     dic_data = get_top_score(n_season,s_league)
-        #     save_in_mongo("topscorers",dic_data)
-        #     list_data = handle_data_top_score(dic_data,n_season,s_league)
-        # else:
-        dic_data = d_result
-        list_data = handle_data_top_score(d_result,n_season,s_league)
+        if this_season == n_season:
+            dic_data = get_top_score(n_season,s_league)
+            save_in_mongo("topscorers",dic_data)
+            list_data = handle_data_top_score(dic_data,n_season,s_league)
+        else:
+            dic_data = d_result
+            list_data = handle_data_top_score(d_result,n_season,s_league)
     
     league_season = get_season_name(dic_data)
     print(n_season,type(n_season),s_league,type(s_league))
@@ -257,7 +260,7 @@ def topscorers(n_season, s_league):
 # Site topassists of league
 @app.route("/topassists/<n_season>/<s_league>",methods=["GET","POST"]) 
 def topassists(n_season, s_league):
-    this_season = get_this_season()
+    this_season = str(get_this_season())
     my_query = {"parameters": {"season":str(n_season),"league":d_league[s_league]}}
     d_result = get_data_mongo("topassists",my_query)
 
@@ -269,13 +272,13 @@ def topassists(n_season, s_league):
         list_data = handle_data_top_assist(dic_data,n_season,s_league)
     # check data in mongo
     else:
-        # if this_season == n_season:
-        #     dic_data = get_top_score(n_season,s_league)
-        #     save_in_mongo("topscorers",dic_data)
-        #     list_data = handle_data_top_score(dic_data,n_season,s_league)
-        # else:
-        dic_data = d_result
-        list_data = handle_data_top_assist(d_result,n_season,s_league)
+        if this_season == n_season:
+            dic_data = get_top_score(n_season,s_league)
+            save_in_mongo("topscorers",dic_data)
+            list_data = handle_data_top_score(dic_data,n_season,s_league)
+        else:
+            dic_data = d_result
+            list_data = handle_data_top_assist(d_result,n_season,s_league)
     
     league_season = get_season_name(dic_data)
     print(n_season,type(n_season),s_league,type(s_league))
@@ -283,6 +286,11 @@ def topassists(n_season, s_league):
     return render_template("topassist.html",listitem=list_data,n_season=n_season,s_league=s_league,
             league=league_season[0],season=league_season[1], logo_image=league_season[2]
     )
+
+# Get image with path
+@app.route('/images/<path:filename>')
+def serve_image(filename):
+    return send_from_directory('images', filename)
 
 # Site homepage
 @app.route("/",methods=["GET","POST"])

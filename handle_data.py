@@ -1,5 +1,23 @@
 from tabulate import tabulate
+import requests, os
 
+def down_images(type, id):
+    id = str(id)
+    link = f'https://media.api-sports.io/football/{type}/{id}.png'
+    img_data = requests.get(link,stream=True).content
+    with open(f'./images/{type}/{id}.png', 'wb') as handler:
+        handler.write(img_data)
+        print("done",id)
+
+def check_file(type, id):
+    path = f"./images/{type}/{id}.png"
+    isFile = os.path.isfile(path)
+    return isFile
+
+def check_n_down_images(s_type, id):
+    b_file = check_file(s_type,id)
+    if b_file is False:
+        down_images(s_type,id)
 
 def handle_data_standing(json_data,s_league,n_season):
     d_data = json_data["response"][0]
@@ -9,8 +27,9 @@ def handle_data_standing(json_data,s_league,n_season):
         # print(team)
         logo = team['team']['logo']
         team_id = team['team']['id']
+        check_n_down_images("teams",team_id)
         rank = team['rank']
-        name = f'<img align="left" width="28" height="28" src="{logo}">'+\
+        name = f'<img align="left" width="28" height="28" src="/images/teams/{team_id}.png">'+\
                 f'<a href="/teams/{team_id}/{n_season}/{s_league}">' + team['team']["name"] + "</a>"
         point = '<b>'+str(team["points"])+'</b>'
         description = team["description"]
@@ -32,18 +51,22 @@ def handle_data_standing(json_data,s_league,n_season):
 # xu ly data ve thong tin chi tiet 1 team
 def handle_data_team_info(json_data):
     d_data = json_data["response"][0]
+    team_id = d_data["team"]["id"]
+    check_n_down_images("teams",team_id)
     team_name = d_data["team"]["name"]
     country = d_data["team"]["country"]
     founded = d_data["team"]["founded"]
     logo = d_data["team"]["logo"]
-    logo = f'<img align="left" max-width="100px" height="auto" src="{logo}">'
+    logo = f'<img align="left" max-width="100px" height="auto" src="/images/teams/{team_id}.png">'
     stadium = d_data["venue"]["name"]
+    venue_id = d_data["venue"]["id"]
+    check_n_down_images("venues",venue_id)
     address = d_data["venue"]["address"]
     city = d_data["venue"]["city"]
     capacity = d_data["venue"]["capacity"]
     surface = d_data["venue"]["surface"]
     image = d_data["venue"]["image"]
-    image = f'<img align="left" max-width="100px" height="auto" src="{image}">'
+    image = f'<img align="left" max-width="100px" height="auto" src="/images/venues/{venue_id}.png">'
     l_mess = []
     # l_items = [team_name,country,founded,logo,stadium,address,city,capacity,surface,image]
     # l_mess.append(l_items)
@@ -63,8 +86,8 @@ def handle_data_squad(json_data,s_league,n_season):
     l_mess = []
     for data in d_data["players"]:
         player_id = data["id"]
-        photo = data["photo"]
-        name_player = f'<img align="left" width="38" height="38" src="{photo}" loading="lazy">' +\
+        check_n_down_images("players",player_id)
+        name_player = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{n_season}/{s_league}">' + data["name"] + "</a>"
         age = data["age"]
         no = data["number"]
@@ -81,11 +104,11 @@ def handle_data_player_info(json_data):
     d_stat = json_data["response"][0]["statistics"][0]
     season = json_data["parameters"]["season"]
     this_season = season + " - " + str(int(season)+1)
-    id = d_data["id"]
+    player_id = d_data["id"]
     name_player = d_data["name"]
     full_name = d_data["firstname"] + " " + d_data["lastname"]
     image = d_data["photo"]
-    image = f'<img align="left" max-width="100px" height="auto" src="{image}">'
+    image = f'<img align="left" max-width="100px" height="auto" src="/images/players/{player_id}.png">'
     age = d_data["age"]
     nation = d_data["nationality"]
     birth = d_data["birth"]["date"]
@@ -100,13 +123,14 @@ def handle_data_player_info(json_data):
     goals_assist = str(d_stat["goals"]["total"]) + "/" + str(d_stat["goals"]["assists"])
     l_mess = [
         ["",image],
-        ["Player Name",full_name],["Position",position],
+        ["Full Name",full_name],["Position",position],
         ["Nationality",nation],["Age",age],["Birth",birth],
         ["Birth place",birth_place],["Height",height],
         ["Weight",weight],["Current team",team],
         ["This season stats",this_season],
-        ["Appearences / Lineups", appear],["Rating", rating],
-        ["Goals / Assists", goals_assist]
+        ["Appearences / Lineups", appear],
+        ["Goals / Assists", goals_assist],
+        ["Rating", rating]
         ]
     message = tabulate(l_mess,tablefmt='html')
     return message
@@ -139,13 +163,15 @@ def handle_data_top_score(json_data,this_season,this_league):
     this_season
     l_mess = []
     for data in d_data:
-        photo = data["player"]["photo"]
         player_id = data["player"]["id"]
+        check_n_down_images("players",player_id)
+        
         team_id = data["statistics"][0]['team']['id']
-        logo = data["statistics"][0]["team"]["logo"]
-        name = f'<img align="left" width="38" height="38" src="{photo}" loading="lazy">' +\
+        check_n_down_images("teams",player_id)
+
+        name = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
-        club = f'<img align="left" width="28" height="28" src="{logo}" loading="lazy">'+\
+        club = f'<img align="left" width="28" height="28" src="/images/teams/{team_id}.png" loading="lazy">'+\
                 f'<a href="/teams/{team_id}/{this_season}/{this_league}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]
@@ -172,13 +198,15 @@ def handle_data_top_assist(json_data,this_season,this_league):
     this_season
     l_mess = []
     for data in d_data:
-        photo = data["player"]["photo"]
         player_id = data["player"]["id"]
+        check_n_down_images("players",player_id)
+
         team_id = data["statistics"][0]['team']['id']
-        logo = data["statistics"][0]["team"]["logo"]
-        name = f'<img align="left" width="38" height="38" src="{photo}" loading="lazy">' +\
+        check_n_down_images("teams",player_id)
+
+        name = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
-        club = f'<img align="left" width="28" height="28" src="{logo}" loading="lazy">'+\
+        club = f'<img align="left" width="28" height="28" src="/images/teams/{team_id}.png" loading="lazy">'+\
                 f'<a href="/teams/{team_id}/{this_season}/{this_league}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]
