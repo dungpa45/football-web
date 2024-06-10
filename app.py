@@ -1,21 +1,14 @@
 import os
 import requests
-import pymongo
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
-from dotenv import load_dotenv
 from datetime import datetime
 from handle_data import *
+from mongo import *
 
-load_dotenv()
+# load_dotenv()
 
 API_HOST = os.getenv("x-rapidapi-host")
 API_KEY = os.getenv("x-rapidapi-key")
-USERMONGO = os.getenv("username")
-PASSMONGO = os.getenv("password")
-
-# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
-myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
-my_db = myclient['football']
 
 headers = {
     'x-rapidapi-host': API_HOST,
@@ -36,22 +29,8 @@ id_name = {
     "78":"Bundesliga",
     "61":"Ligue 1"
 }
+
 app = Flask(__name__)
-
-def save_in_mongo(coll_name,data):
-    my_coll = my_db[coll_name]
-    my_coll.insert_one(data)
-
-def update_in_mongo(coll_name,old_data,new_data):
-    mycol = my_db[coll_name]
-    newdata = {"$set": new_data}
-    mycol.update_one(old_data, newdata)
-
-def get_data_mongo(coll_name,query):
-    mycol = my_db[coll_name]
-    mydoc = mycol.find(query)
-    for data in mydoc:
-        return data
 
 def json_process(query):
     res = requests.request("GET", "https://"+API_HOST+query, headers=headers)
@@ -80,16 +59,6 @@ def get_top_assist(season,league_value):
     json_data = json_process(query)
     return json_data
 
-def get_name_season_league(json_data):
-    d_data = json_data["response"][0]
-    name_league = d_data["league"]["name"]
-    id = d_data["league"]["id"]
-    season_league = d_data["league"]["season"]
-    season_league = str(season_league) + "-" +str(season_league+1)
-    # logo = d_data["league"]["logo"]
-    logo = url_for('static',filename="league_logo/"+str(id)+'.png')
-    return name_league, season_league, logo
-
 def get_season_name(json_data):
     d_data = json_data["parameters"]
     n_season = d_data["season"]
@@ -97,7 +66,6 @@ def get_season_name(json_data):
     name_league = id_name[id]
     season_league = str(n_season) + "-" +str(int(n_season)+1)
     logo = url_for('static',filename="league_logo/"+str(id)+'.png')
-    # print("LOGO",logo)
     return name_league, season_league, logo
 
 def get_team_info(team_id):
@@ -172,7 +140,7 @@ def standing_(n_season, s_league):
         dic_data = get_data_standing(n_season,s_league)
         save_in_mongo("standing",dic_data)
         list_data = handle_data_standing(dic_data,s_league,n_season)
-    league_season = get_name_season_league(dic_data)
+    league_season = get_season_name(dic_data)
     # print(list_data)
     list_data = html_replace(list_data)
     return render_template("standing.html",listitem=list_data, n_season=n_season,s_league=s_league,
