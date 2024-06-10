@@ -24,7 +24,6 @@ def handle_data_standing(json_data,s_league,n_season):
     l_standings = d_data["league"]["standings"]
     l_mess = []
     for team in l_standings[0]:
-        # print(team)
         logo = team['team']['logo']
         team_id = team['team']['id']
         check_n_down_images("teams",team_id)
@@ -45,7 +44,6 @@ def handle_data_standing(json_data,s_league,n_season):
     
     list_headers = ["No","Team","Match","Win","Draw","Lose","Goals","Against","Difference","Points","Detail"]
     message = tabulate(l_mess,headers=list_headers,tablefmt='html', colalign=("center" for i in list_headers))
-    # print(message,type(message))
     return message
 
 # xu ly data ve thong tin chi tiet 1 team
@@ -147,6 +145,12 @@ def handle_data_trophies(json_trophy_data):
         place = trophy["place"]
         if place == "Winner":
             trophy = str(no)+" - "+league+s_season
+            if "UEFA Champions League" in league:
+                trophy = f'<div id="c1">{trophy}</div>'
+            elif "FIFA World Cup" in league:
+                trophy = f'<div id="wc">{trophy}</div>'
+            elif "UEFA Europa League" in league:
+                trophy = f'<div id="c2">{trophy}</div>'
             l_cup = [trophy, country]
         else:
             continue
@@ -159,6 +163,11 @@ def handle_data_trophies(json_trophy_data):
 # Xu ly data top score
 def handle_data_top_score(json_data,this_season,this_league):
     d_data = json_data["response"]
+    if not d_data:
+        l_mess =[" "]
+        list_headers = ["No Data"]
+        message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
+        return message
     rank = 1
     this_season
     l_mess = []
@@ -167,7 +176,7 @@ def handle_data_top_score(json_data,this_season,this_league):
         check_n_down_images("players",player_id)
         
         team_id = data["statistics"][0]['team']['id']
-        check_n_down_images("teams",player_id)
+        check_n_down_images("teams",team_id)
 
         name = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
@@ -194,6 +203,11 @@ def handle_data_top_score(json_data,this_season,this_league):
 # Xu ly data top assist
 def handle_data_top_assist(json_data,this_season,this_league):
     d_data = json_data["response"]
+    if not d_data:
+        l_mess =[" "]
+        list_headers = ["No Data"]
+        message = tabulate(l_mess, headers=list_headers,tablefmt='html')
+        return message
     rank = 1
     this_season
     l_mess = []
@@ -202,7 +216,7 @@ def handle_data_top_assist(json_data,this_season,this_league):
         check_n_down_images("players",player_id)
 
         team_id = data["statistics"][0]['team']['id']
-        check_n_down_images("teams",player_id)
+        check_n_down_images("teams",team_id)
 
         name = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"

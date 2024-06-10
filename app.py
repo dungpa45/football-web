@@ -13,8 +13,8 @@ API_KEY = os.getenv("x-rapidapi-key")
 USERMONGO = os.getenv("username")
 PASSMONGO = os.getenv("password")
 
-myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
-# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
+# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
+myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
 my_db = myclient['football']
 
 headers = {
@@ -29,7 +29,13 @@ d_league = {
     "bundes":"78",
     "ligue1":"61"
 }
-
+id_name = {
+    "39":"Premier League",
+    "140":"La Liga",
+    "135":"Serie A",
+    "78":"Bundesliga",
+    "61":"Ligue 1"
+}
 app = Flask(__name__)
 
 def save_in_mongo(coll_name,data):
@@ -85,11 +91,11 @@ def get_name_season_league(json_data):
     return name_league, season_league, logo
 
 def get_season_name(json_data):
-    d_data = json_data["response"][0]["statistics"][0]
-    n_season = d_data["league"]["season"]
-    name_league = d_data["league"]["name"]
-    id = d_data["league"]["id"]
-    season_league = str(n_season) + "-" +str(n_season+1)
+    d_data = json_data["parameters"]
+    n_season = d_data["season"]
+    id = d_data["league"]
+    name_league = id_name[id]
+    season_league = str(n_season) + "-" +str(int(n_season)+1)
     logo = url_for('static',filename="league_logo/"+str(id)+'.png')
     # print("LOGO",logo)
     return name_league, season_league, logo
@@ -219,7 +225,6 @@ def player_infomation(n_season,s_league,player_id):
     else:
         list_data = handle_data_player_info(d_player_mongo)
         list_trop_data = handle_data_trophies(d_trophies_mongo)
-
     list_data = html_replace(list_data)
     l_trop_data = html_replace(list_trop_data[0])
     num_trophies = list_trop_data[1]
@@ -273,15 +278,14 @@ def topassists(n_season, s_league):
     # check data in mongo
     else:
         if this_season == n_season:
-            dic_data = get_top_score(n_season,s_league)
+            dic_data = get_top_assist(n_season,s_league)
             save_in_mongo("topscorers",dic_data)
-            list_data = handle_data_top_score(dic_data,n_season,s_league)
+            list_data = handle_data_top_assist(dic_data,n_season,s_league)
         else:
             dic_data = d_result
             list_data = handle_data_top_assist(d_result,n_season,s_league)
     
     league_season = get_season_name(dic_data)
-    print(n_season,type(n_season),s_league,type(s_league))
     list_data = html_replace(list_data)
     return render_template("topassist.html",listitem=list_data,n_season=n_season,s_league=s_league,
             league=league_season[0],season=league_season[1], logo_image=league_season[2]

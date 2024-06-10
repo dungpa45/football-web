@@ -77,3 +77,36 @@ body {
 .sticky + .content {
   padding-top: 102px;
 }
+
+#Trophy {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  background-color: #0073e6;
+  color: white;
+  padding: 5px;
+  font-size: 20px;
+}
+td {
+  position: relative;
+}
+#standings td div {
+  width:100%;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  text-align: center;
+  padding: 5px;
+}
+#standings td div#c1 {
+  background-color: lightskyblue;
+}
+#standings td div#c2 {
+  background-color: darkorange;
+}
+#standings td div#wc {
+  background-color: gold;
+}
