@@ -19,7 +19,7 @@ def check_n_down_images(s_type, id):
     if b_file is False:
         down_images(s_type,id)
 
-def handle_data_standing(json_data,s_league,n_season):
+def handle_data_standing(json_data,n_season):
     d_data = json_data["response"][0]
     l_standings = d_data["league"]["standings"]
     l_mess = []
@@ -29,7 +29,7 @@ def handle_data_standing(json_data,s_league,n_season):
         check_n_down_images("teams",team_id)
         rank = team['rank']
         name = f'<img align="left" width="28" height="28" src="/images/teams/{team_id}.png">'+\
-                f'<a href="/teams/{team_id}/{n_season}/{s_league}">' + team['team']["name"] + "</a>"
+                f'<a href="/teams/{team_id}/{n_season}">' + team['team']["name"] + "</a>"
         point = '<b>'+str(team["points"])+'</b>'
         description = team["description"]
         match = team["all"]["played"]
@@ -45,6 +45,69 @@ def handle_data_standing(json_data,s_league,n_season):
     list_headers = ["No","Team","Match","Win","Draw","Lose","Goals","Against","Difference","Points","Detail"]
     message = tabulate(l_mess,headers=list_headers,tablefmt='html', colalign=("center" for i in list_headers))
     return message
+
+# Api will response some data have multiple results
+def handle_multi_coach(res):
+    # Filter the response
+    l_one_coach = [
+        coach for coach in res['response'] if any(job['end'] is None for job in coach['career'])
+    ]
+    res['results'] = 1
+    res['response'] = l_one_coach
+    return res
+
+# get data coach for team info
+def handle_coach_for_team(json_data, team_id):
+    d_data = json_data["response"][0]
+    coach_id = d_data["id"]
+    check_n_down_images("coachs",coach_id)
+    name = d_data["name"]
+    photo_name = f'<img align="left" width="80" height="80" src="/images/coachs/{coach_id}.png" loading="lazy">'+\
+                f'<a style="top: 40%; position: absolute;" href="/coachs/{coach_id}/{team_id}"> {name} </a>'
+    html_coach = f"<tr><td> Coach </td> <td>{photo_name}</td> </tr>"
+    return html_coach
+
+# xu ly data coach
+def handle_data_coach(json_data):
+    d_data = json_data["response"][0]
+    coach_id = d_data["id"]
+    check_n_down_images("coachs",coach_id)
+    name = d_data["name"]
+    full_name = d_data["firstname"]+" "+d_data["lastname"]
+    image = f'<img align="left" max-width="100px" height="auto" src="/images/coachs/{coach_id}.png">'
+    n_age = d_data["age"]
+    nation = d_data["nationality"]
+    birth = d_data["birth"]["date"]
+    place_ = d_data["birth"]["place"] or ""
+    birth_place = place_ +" - "+ d_data["birth"]["country"]
+    height = d_data["height"]
+    weight = d_data["weight"]
+    team = d_data["team"]["name"]
+    l_career = d_data["career"]
+    mess_career = []
+        
+    l_mess = [
+        ["",image],
+        ["Full Name",full_name],
+        ["Nationality",nation],["Age",n_age],["Birth",birth],
+        ["Birth place",birth_place],["Height",height],
+        ["Weight",weight],["Team",team]
+    ]
+    for team in l_career:
+        team_id = team["team"]["id"]
+        check_n_down_images("teams",team_id)
+        start = team["start"]
+        end = team["end"]
+        if not end:
+            end = "Now"
+        image_name = f'<img align="left" width="38" height="38" src="/images/teams/{team_id}.png">'+\
+                f'<a href="/teams/{team_id}">' + team["team"]["name"] + "</a>"
+        time_coach = start+" - "+end
+        l_team = [image_name, time_coach]
+        mess_career.append(l_team)
+    message = tabulate(l_mess,tablefmt='html')
+    message2 = tabulate(mess_career,tablefmt='html')
+    return message, message2
 
 # xu ly data ve thong tin chi tiet 1 team
 def handle_data_team_info(json_data):
@@ -74,19 +137,19 @@ def handle_data_team_info(json_data):
         ["Founded",founded],["Stadium",stadium],
         ["Address",address],["City",city],
         ["Capacity",capacity],["Surface",surface],
-        ["",image],['<b align="center"> Current Squad</b>']
+        ["",image]
         ]
     message = tabulate(l_mess,tablefmt='html')
     return message
 
-def handle_data_squad(json_data,s_league,n_season):
+def handle_data_squad(json_data,n_season):
     d_data = json_data["response"][0]
     l_mess = []
     for data in d_data["players"]:
         player_id = data["id"]
         check_n_down_images("players",player_id)
         name_player = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
-                f'<a href="/players/{player_id}/{n_season}/{s_league}">' + data["name"] + "</a>"
+                f'<a href="/players/{player_id}/{n_season}">' + data["name"] + "</a>"
         age = data["age"]
         no = data["number"]
         position = data["position"]
@@ -125,7 +188,7 @@ def handle_data_player_info(json_data):
         ["Nationality",nation],["Age",age],["Birth",birth],
         ["Birth place",birth_place],["Height",height],
         ["Weight",weight],["Current team",team],
-        ["This season stats",this_season],
+        ["Season stats",this_season],
         ["Appearences / Lineups", appear],
         ["Goals / Assists", goals_assist],
         ["Rating", rating]
@@ -161,7 +224,7 @@ def handle_data_trophies(json_trophy_data):
     return message, no_trophies
 
 # Xu ly data top score
-def handle_data_top_score(json_data,this_season,this_league):
+def handle_data_top_score(json_data,this_season):
     d_data = json_data["response"]
     if not d_data:
         l_mess =[" "]
@@ -179,9 +242,9 @@ def handle_data_top_score(json_data,this_season,this_league):
         check_n_down_images("teams",team_id)
 
         name = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
-                f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
+                f'<a href="/players/{player_id}/{this_season}">' + data["player"]["name"] + "</a>"
         club = f'<img align="left" width="28" height="28" src="/images/teams/{team_id}.png" loading="lazy">'+\
-                f'<a href="/teams/{team_id}/{this_season}/{this_league}">' + data["statistics"][0]['team']["name"] + "</a>"
+                f'<a href="/teams/{team_id}/{this_season}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]
         date = int(date.split("-")[0])
@@ -201,7 +264,7 @@ def handle_data_top_score(json_data,this_season,this_league):
     return message
 
 # Xu ly data top assist
-def handle_data_top_assist(json_data,this_season,this_league):
+def handle_data_top_assist(json_data,this_season):
     d_data = json_data["response"]
     if not d_data:
         l_mess =[" "]
@@ -219,9 +282,9 @@ def handle_data_top_assist(json_data,this_season,this_league):
         check_n_down_images("teams",team_id)
 
         name = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
-                f'<a href="/players/{player_id}/{this_season}/{this_league}">' + data["player"]["name"] + "</a>"
+                f'<a href="/players/{player_id}/{this_season}">' + data["player"]["name"] + "</a>"
         club = f'<img align="left" width="28" height="28" src="/images/teams/{team_id}.png" loading="lazy">'+\
-                f'<a href="/teams/{team_id}/{this_season}/{this_league}">' + data["statistics"][0]['team']["name"] + "</a>"
+                f'<a href="/teams/{team_id}/{this_season}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]
         date = int(date.split("-")[0])

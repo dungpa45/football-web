@@ -4,11 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Team Information</title>
+    <title>Coach Information</title>
     <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" />
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
-    <script src="{{ url_for('static',filename='sorttable.js') }}"></script>
     <script src="https://code.jquery.com/jquery-3.3.1.js"
         integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous">
         </script>
@@ -18,24 +17,26 @@
             // $("#footer").load("footer.html");
         });
     </script>
+    <style>
+        #standings {
+            max-width: 900px;
+        }
+    </style>
 </head>
 
 <body>
     {% include "header.html" %}
 
-    <div id="standings" class="w3-container">
+    <div id="standings" class="w3-container",style="overflow-x:auto;">
         <table id="myTable" class="w3-table-all w3-medium">
             {% autoescape false %}
-            {{listitem}}
-            {{list_coach}}
+            {{listinfo}}
             {% endautoescape %}
         </table>
-        <div id="standings" class="w3-container" style="background: darkgray;"><b class="w3-container w3-medium" align="center"> Current Squad</b></div>
-    </div>
-    <div id="standings" class="w3-container">
-        <table id="myTable" class="w3-table-all w3-medium sortable">
+        <div id="standings" class="w3-container" style="background: rgb(223, 158, 158);"><b class="w3-container w3-medium" align="center"> Career</b></div>
+        <table id="myTable" class="w3-table-all w3-medium">
             {% autoescape false %}
-            {{list_squad}}
+            {{listcareer}}
             {% endautoescape %}
         </table>
     </div>

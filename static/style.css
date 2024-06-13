@@ -19,9 +19,10 @@ body {
   font-size: 13px;
 }
   
-#standings td, #standings th {
+#standings td, #standings th, #standings a {
   border: 0px solid #ddd;
   padding: 5px;
+  vertical-align: middle;
 }
 
 #standings tr:nth-child(even){background-color: #f2f2f2;}
