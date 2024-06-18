@@ -187,7 +187,7 @@ def handle_data_player_info(json_data):
         ["Full Name",full_name],["Position",position],
         ["Nationality",nation],["Age",age],["Birth",birth],
         ["Birth place",birth_place],["Height",height],
-        ["Weight",weight],["Current team",team],
+        ["Weight",weight],["Team",team],
         ["Season stats",this_season],
         ["Appearences / Lineups", appear],
         ["Goals / Assists", goals_assist],
@@ -222,6 +222,35 @@ def handle_data_trophies(json_trophy_data):
     no_trophies = no -1
     message = tabulate(l_mess, tablefmt='html')
     return message, no_trophies
+
+# Xu ly data transfer
+def handle_data_transfer(json_trans_data):
+    if json_trans_data["results"] == 0:
+        l_mess =[" "]
+        list_headers = ["No data"]
+        message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
+        return message
+    l_data = json_trans_data["response"][0]["transfers"]
+    l_mess =[]
+    for tr in l_data:
+        date = tr["date"]
+        s_type = tr["type"]
+        team_out_id = tr["teams"]["out"]["id"]
+        team_in_id = tr["teams"]["in"]["id"]
+        team_out_name = tr["teams"]["out"]["name"]
+        team_in_name = tr["teams"]["in"]["name"]
+        check_n_down_images("teams",team_out_id)
+        check_n_down_images("teams",team_in_id)
+        team_out_image = f'<img align="left" width="28" height="28" src="/images/teams/{team_out_id}.png" loading="lazy">'+\
+                f'<a href="/teams/{team_out_id}">' + team_out_name + "</a>"
+        team_in_image = f'<img align="left" width="28" height="28" src="/images/teams/{team_in_id}.png" loading="lazy">'+\
+                f'<a href="/teams/{team_in_id}">' + team_in_name + "</a>"
+        
+        l_tran = [date, s_type, team_out_image, team_in_image]
+        l_mess.append(l_tran)
+    list_headers = ["Date","Type","From","To"]
+    message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
+    return message
 
 # Xu ly data top score
 def handle_data_top_score(json_data,this_season):

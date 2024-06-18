@@ -28,9 +28,24 @@
     {% include "header.html" %}
 
     <div id="standings" class="w3-container",style="overflow-x:auto;">
+        <div id="Trophy">
+            <b>Information</b>
+        </div>
         <table id="myTable" class="w3-table-all w3-medium">
             {% autoescape false %}
             {{listitem}}
+            {% endautoescape %}
+        </table>
+    </div>
+    <div id="standings" class="w3-container">
+        <div id="Trophy">
+            <b>Career Clubs</b>
+        </div>
+    </div>
+    <div id="standings" class="w3-container",style="overflow-x:auto;">
+        <table id="myTable" class="w3-table-all w3-medium">
+            {% autoescape false %}
+            {{list_trans}}
             {% endautoescape %}
         </table>
     </div>

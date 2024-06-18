@@ -82,7 +82,7 @@ def get_player_info(player_id, n_season):
     json_data = json_process(query)
     return json_data
 
-def get_player_tropies(player_id):
+def get_player_trophies(player_id):
     query = f"/trophies?player={player_id}"
     json_data = json_process(query)
     return json_data
@@ -94,6 +94,11 @@ def get_squads(team_id):
 
 def get_coachs(team_id):
     query = f"/coachs?team={team_id}"
+    json_data = json_process(query)
+    return json_data
+
+def get_transfer(player_id):
+    query = f"/transfers?player={player_id}"
     json_data = json_process(query)
     return json_data
 
@@ -217,28 +222,40 @@ def coach_infomation(coach_id,team_id):
 def player_infomation(n_season,player_id):
     player_query = {"parameters": {"id":str(player_id),"season":str(n_season)}}
     trophies_query = {"parameters": {"player":str(player_id)}}
+    transfer_query = {"parameters": {"player":str(player_id)}}
     d_player_mongo = get_data_mongo("players",player_query)
     d_trophies_mongo = get_data_mongo("trophies",trophies_query)
+    d_transfer_mongo = get_data_mongo("transfers",trophies_query)
     # get data from api-football
-    if d_player_mongo is None or d_trophies_mongo is None:
+    if d_player_mongo is None or d_trophies_mongo is None or d_transfer_mongo is None:
+        # infomation
         dic_data = get_player_info(player_id,n_season)
-        save_in_mongo("players",dic_data)
-        d_trophies_data = get_player_tropies(player_id)
         list_data = handle_data_player_info(dic_data)
+        save_in_mongo("players",dic_data)
+        # trophies
+        d_trophies_data = get_player_trophies(player_id)
         list_trop_data = handle_data_trophies(d_trophies_data)
         save_in_mongo("trophies",d_trophies_data)
+        # transfers
+        d_transfer_data = get_transfer(player_id)
+        list_trans_data = handle_data_transfer(d_transfer_data)
+        save_in_mongo("transfers",d_transfer_data)
     # check data in mongo
     else:
         list_data = handle_data_player_info(d_player_mongo)
         list_trop_data = handle_data_trophies(d_trophies_mongo)
+        list_trans_data = handle_data_transfer(d_transfer_mongo)
     list_data = html_replace(list_data)
     l_trop_data = html_replace(list_trop_data[0])
+    l_trans_data = html_replace(list_trans_data)
     num_trophies = list_trop_data[1]
     
     s_league = session.get("s_league",None)
     n_season = session.get("n_season",None)
-    return render_template("player_info.html",listitem = list_data, list_trop = l_trop_data, no_trophies=num_trophies, 
-                           n_season=n_season,s_league=s_league)
+    return render_template("player_info.html",n_season=n_season,s_league=s_league,
+                           listitem=list_data, list_trop=l_trop_data, 
+                           no_trophies=num_trophies, list_trans=l_trans_data
+                           )
 
 # Site topscorers of league
 @app.route("/topscorers/<n_season>/<s_league>",methods=["GET","POST"]) 
