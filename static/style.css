@@ -91,6 +91,9 @@ body {
 td {
   position: relative;
 }
+img {
+  max-width:100%; height:auto
+}
 #standings td div {
   width:100%;
   height: 100%;

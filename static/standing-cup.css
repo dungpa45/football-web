@@ -1,0 +1,72 @@
+body {
+    font-family: 'Arial', sans-serif;    
+    margin: 0;
+    padding: 20px;
+    background-image: url('./background/uefaeuro2024wt.webp');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center; 
+}
+
+h1 {
+    text-align: center;
+    color: #ffffff;
+    margin-bottom: 20px;
+}
+.table-container {
+    margin-bottom: 40px;
+}
+.table-wrapper {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+}
+.table-card {
+    /* background: #fff; */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 840px;
+}
+.table-card h2 {
+    background-color: lightblue;
+    font-weight: bold;
+    color: black;
+    padding: 4px;
+    margin: 0;
+    text-align: center;
+    font-size: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th, td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f7f7f7;
+    color: #333;
+}
+tr {
+    background-color: #f9f9f9;
+}
+/* tr:nth-child(even) {
+    background-color: #f9f9f9;
+} */
+tr:hover {
+    background-color: #f1f1f1;
+}
+img {
+    vertical-align: middle;
+    margin-right: 10px;
+    max-width:100%; height:auto
+}
+td div#next-stage {
+    background-color: gold;
+  }

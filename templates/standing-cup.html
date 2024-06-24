@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Standing Cup</title>
+    <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" />
+    <link rel="stylesheet" type="text/css" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='standing-cup.css') }}">
+    <script src="{{ url_for('static',filename='sorttable.js') }}"></script>
+
+</head>
+<body>
+    <div class="bg"></div>
+    <!-- <h1>Standings</h1> -->
+    {% for table1, table2 in tables %}
+        <div class="table-container">
+            <div class="table-wrapper">
+                <div class="table-card">
+                    <h2>Group {{ 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[loop.index0 * 2] }}</h2>
+                    {% if table1 %}
+                        {{ table1|safe }}
+                    {% endif %}
+                </div>
+                <div class="table-card">
+                    <h2>Group {{ 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[loop.index0 * 2+1] }}</h2>
+                    {% if table2 %}
+                        {{ table2|safe }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+    <div class="table-wrapper">
+        <div class="table-card">
+            <h2>Best 3rd Placed Teams</h2>
+            {{ third_place_table|safe }}
+        </div>
+    </div>
+</body>
+</html>
