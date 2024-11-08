@@ -1,0 +1,23 @@
+<div id="topbar" style=" font-weight: bold;">
+    <a class="w3-btn" href="/">Home</a>
+    <form action="/" method="POST">
+        <label for="league">Cup:</label>
+        <select name="league" id="league">
+            <option value="euro_cup" {% if s_league=="euro_cup" %} selected {% endif %}>UEFA Euro Championship</option>
+            <option value="worldcup" {% if s_league=="worldcup" %} selected {% endif %}>FIFA World Cup</option>
+        
+        </select>
+
+        <label for="season">Season:</label>
+        <select name="season" id="season" required>
+            <option value="2018">2018</option>
+            <option value="2020">2021</option>
+            <option value="2022">2022</option>
+            <option value="2024" selected>2024</option>
+        </select>
+
+        <input id="cup" type="submit" name="cup" value="Standings">
+        <input id="cup" type="submit" name="cup" value="TopScore">
+        <input id="cup" type="submit" name="cup" value="TopAssist">
+    </form>
+</div>

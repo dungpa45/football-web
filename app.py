@@ -25,7 +25,8 @@ d_league = {
     "seriea":"135",
     "bundes":"78",
     "ligue1":"61",
-    "euro_cup":"4"
+    "euro_cup":"4",
+    "worldcup":"1"
 }
 id_name = {
     "39":"Premier League",
@@ -33,7 +34,8 @@ id_name = {
     "135":"Serie A",
     "78":"Bundesliga",
     "61":"Ligue 1",
-    "4":"Euro Championship"
+    "4":"Euro Championship",
+    "1": "World Cup"
 }
 
 app = Flask(__name__)
@@ -188,22 +190,26 @@ def standing_cup(n_season, s_league):
     # check data in mongo
     if d_result is not None:
         dic_data = d_result
-        list_data = handle_data_cup_standing(dic_data,n_season)
+        try:
+            list_data = handle_data_cup_standing(dic_data,n_season,s_league)
+        except Exception as e:
+            return redirect(request.referrer)
         if this_season == n_season:
             print("get from api cup standing")
             dic_data_new = get_data_standing(n_season,s_league)
             update_in_mongo("standing",dic_data,dic_data_new)
-            list_data = handle_data_cup_standing(dic_data,n_season)
+            list_data = handle_data_cup_standing(dic_data,n_season,s_league)
         else:
             dic_data = d_result
-            list_data = handle_data_cup_standing(dic_data,n_season)
+            list_data = handle_data_cup_standing(dic_data,n_season,s_league)
     #get data from api-football
     else:
         dic_data = get_data_standing(n_season,s_league)
         save_in_mongo("standing",dic_data)
-        list_data = handle_data_cup_standing(dic_data,n_season)
+        list_data = handle_data_cup_standing(dic_data,n_season,s_league)
     league_season = get_season_name(dic_data)
     # print(list_data)
+    
     s_league_session = session.get("s_league",None)
     n_season_session = session.get("n_season",None)
     return render_template("standing-cup.html",tables=list_data[0],third_place_table=list_data[1],n_season=n_season_session,s_league=s_league_session,
@@ -323,7 +329,7 @@ def topscorers(n_season, s_league):
     # check data in mongo
     else:
         if this_season == n_season:
-            print("get from api")
+            print("get from score api")
             dic_data = get_top_score(n_season,s_league)
             update_in_mongo("topscorers",d_result,dic_data)
             list_data = handle_data_top_score(dic_data,n_season)
@@ -361,6 +367,7 @@ def topassists(n_season, s_league):
     # check data in mongo
     else:
         if this_season == n_season:
+            print("get from assist api")
             dic_data = get_top_assist(n_season,s_league)
             update_in_mongo("topscorers",d_result,dic_data)
             list_data = handle_data_top_assist(dic_data,n_season)
@@ -395,17 +402,26 @@ def main():
     elif request.method == "POST":
         n_season = request.form.get("season")
         s_league = request.form.get("league")
+        print("================")
+        print(n_season,s_league)
         # Store value in session
         session['s_league'] = s_league
         session['n_season'] = n_season
-        if request.form.get("action") == "Standings":
+        # League select
+        if request.form.get("league-type") == "Standings":
             return redirect(url_for('standing_league',n_season=n_season,s_league=s_league))
-        elif request.form.get("action") == "TopScore":
+        elif request.form.get("league-type") == "TopScore":
             return redirect(url_for('topscorers',n_season=n_season,s_league=s_league))
-        elif request.form.get("action") == "TopAssist":
+        elif request.form.get("league-type") == "TopAssist":
             return redirect(url_for('topassists',n_season=n_season,s_league=s_league))
-        elif request.form.get("action") == "Euro 2024":
-            return redirect(url_for('standing_cup',n_season="2024",s_league="euro_cup"))
-
+        # Cup select
+        elif request.form.get("cup") == "Standings":
+            return redirect(url_for('standing_cup',n_season=n_season,s_league=s_league))
+        elif request.form.get("cup") == "TopScore":
+            return redirect(url_for('topscorers',n_season=n_season,s_league=s_league))
+        elif request.form.get("cup") == "TopAssist":
+            return redirect(url_for('topassists',n_season=n_season,s_league=s_league))
+        else:
+            print(request.form.get("league"))
 if __name__ == "__main__":
     app.run(debug=True,host="0.0.0.0")

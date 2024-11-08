@@ -2,6 +2,7 @@ services:
   mongodb:
     container_name: mongodb
     image: mongo
+    restart: always
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
@@ -13,6 +14,7 @@ services:
   mongo-express:
     container_name: mongo-express
     image: mongo-express
+    restart: always
     environment:
       - ME_CONFIG_MONGODB_SERVER=mongodb
       - ME_CONFIG_MONGODB_PORT=27017
@@ -31,6 +33,7 @@ services:
   football-app:
     container_name: football-app
     image: dung4597/app-football:2024-image
+    restart: always
     depends_on:
       - mongodb
     ports:

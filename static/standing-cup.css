@@ -2,7 +2,7 @@ body {
     font-family: 'Arial', sans-serif;    
     margin: 0;
     padding: 20px;
-    background-image: url('./background/uefaeuro2024wt.webp');
+    /* background-image: url('./background/euro2024.webp'); */
     background-size: cover;
     background-attachment: fixed;
     background-position: center; 
@@ -15,6 +15,7 @@ h1 {
 }
 .table-container {
     margin-bottom: 40px;
+    margin-block-start: 9px;
 }
 .table-wrapper {
     display: flex;

@@ -47,12 +47,15 @@ def handle_data_standing(json_data,n_season):
     return message
 
 # Handle data cup standing
-def handle_data_cup_standing(json_data,n_season):
+def handle_data_cup_standing(json_data,n_season,s_league):
     standings = json_data['response'][0]['league']['standings']
     # Create HTML tables using tabulate, organizing them in pairs for side-by-side display
     tables = []
     headers = ["Rank", "Team", "Points", "Played", "Win", "Draw", "Lose", "Goals", "Against", "Diff"]
-    for i in range(0, 6, 2):
+    len_group = len(standings)
+    if len_group%2 == 1:
+        len_group = len_group -1
+    for i in range(0, len_group, 2):
         table_pair = []
         for j in range(2):
             if i + j < len(standings):
@@ -83,35 +86,37 @@ def handle_data_cup_standing(json_data,n_season):
             else:
                 table_pair.append(None)
         tables.append(table_pair)
-    
-    third_place_rows = []
-    third_headers = ["Rank", "Team", "Points", "Played", "Win", "Draw", "Lose", "Goals", "Against", "Diff",""]
-    for l_table in standings:
-        for team in l_table:
-            if team['group'] == "Ranking of third-placed teams":
-                team_id = team["team"]["id"]
-                img_name = f'<img width="28" height="28" src="/images/teams/{team_id}.png"> '+\
-                                f'<a href="/teams/{team_id}/{n_season}">' + team['team']["name"] + "</a>"
-                if team["description"]:
-                    des = team["description"][:9]
+    if "euro" in s_league:
+        third_place_rows = []
+        third_headers = ["Rank", "Team", "Points", "Played", "Win", "Draw", "Lose", "Goals", "Against", "Diff",""]
+        for l_table in standings:
+            for team in l_table:
+                if team['group'] == "Ranking of third-placed teams":
+                    team_id = team["team"]["id"]
+                    img_name = f'<img width="28" height="28" src="/images/teams/{team_id}.png"> '+\
+                                    f'<a href="/teams/{team_id}/{n_season}">' + team['team']["name"] + "</a>"
+                    if team["description"]:
+                        des = team["description"][:9]
+                    else:
+                        des = ""
+                    third_place_rows.append([
+                        team["rank"],
+                        img_name,
+                        team['points'],
+                        team['all']['played'],
+                        team['all']['win'],
+                        team['all']['draw'],
+                        team['all']['lose'],
+                        team['all']['goals']['for'],
+                        team['all']['goals']['against'],
+                        team['goalsDiff'],
+                        des
+                    ])
                 else:
-                    des = ""
-                third_place_rows.append([
-                    team["rank"],
-                    img_name,
-                    team['points'],
-                    team['all']['played'],
-                    team['all']['win'],
-                    team['all']['draw'],
-                    team['all']['lose'],
-                    team['all']['goals']['for'],
-                    team['all']['goals']['against'],
-                    team['goalsDiff'],
-                    des
-                ])
-            else:
-                continue
-    third_place_table = tabulate(third_place_rows, third_headers, tablefmt='unsafehtml', colalign=("left" for i in third_headers))
+                    continue
+        third_place_table = tabulate(third_place_rows, third_headers, tablefmt='unsafehtml', colalign=("left" for i in third_headers))
+    else:
+        third_place_table = []
     return tables, third_place_table
     
 # Api will response some data have multiple results

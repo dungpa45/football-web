@@ -15,7 +15,7 @@ body {
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     text-align: center;
     color: aliceblue;
-    max-width: 400px;
+    max-width: 800px;
     width: 100%;
 }
 h2 {
@@ -46,9 +46,32 @@ input[type="submit"] {
 input[type="submit"]:hover {
     background-color: #0056b3;
 }
-input[value="Euro 2024"] {
+input[id="cup"] {
     background-color: #eb6e58;
 }
-input[value="Euro 2024"]:hover {
+input[id="cup"]:hover {
     background-color: #b8270e;
+}
+
+.form-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.form-box {
+    flex: 1;
+    margin-right: 20px;
+}
+
+.form-box:last-child {
+    margin-right: 0;
+}
+
+.form-box form {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-box label, .form-box select, .form-box input[type="submit"] {
+    margin-bottom: 10px;
 }

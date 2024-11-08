@@ -40,13 +40,11 @@ body {
 #logo image{
     display: block;
 }
-#topbar {
+/* #topbar {
   background: #14224c;
   color: #ddd;
   margin: 20px auto;
   text-align: center;
-  /* text-align: justify; */
-  /* font-size: smaller; */
 }
 #topbar a {
   float: left;
@@ -68,7 +66,7 @@ body {
   padding: 14px 16px;
   text-decoration: none;
   font-size: 14px;
-}
+} */
 .sticky {
   position: fixed;
   top: 0;
