@@ -10,10 +10,10 @@
 
         <label for="season">Season:</label>
         <select name="season" id="season" required>
-            <option value="2018">2018</option>
-            <option value="2020">2021</option>
-            <option value="2022">2022</option>
-            <option value="2024" selected>2024</option>
+            <option value="2018" {% if n_season=="2018" %} selected {% endif %}>2018</option>
+            <option value="2020" {% if n_season=="2020" %} selected {% endif %}>2021</option>
+            <option value="2022" {% if n_season=="2022" %} selected {% endif %}>2022</option>
+            <option value="2024" {% if n_season=="2024" %} selected {% endif %}>2024</option>
         </select>
 
         <input id="cup" type="submit" name="cup" value="Standings">
