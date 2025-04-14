@@ -1,5 +1,6 @@
 import os
-import random, string
+import random
+import string
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, session, redirect, url_for, send_from_directory
@@ -42,9 +43,17 @@ app = Flask(__name__)
 app.secret_key = secret
 
 def json_process(query):
-    res = requests.request("GET", "https://"+API_HOST+query, headers=headers)
-    d_json = res.json()
-    return d_json
+    try:
+        res = requests.request("GET", "https://"+API_HOST+query, headers=headers)
+        res.raise_for_status()  # Raise an HTTPError for bad responses
+        d_json = res.json()
+        return d_json
+    except requests.exceptions.RequestException as e:
+        print(f"HTTP Request failed: {e}")
+        return None
+    except ValueError as e:
+        print(f"JSON decoding failed: {e}")
+        return None
 
 def html_replace(data):
     data_html = data.replace('&lt;','<').replace('&gt;','>').replace('&quot;','"').replace('<table>','').replace('</table>','')
@@ -119,7 +128,7 @@ def get_this_season(summer_cup=None):
     currentYear = datetime.now().year
     currentMonth = datetime.now().month
     # check thang hien tai
-    print("summer_cup",summer_cup)
+    # print("summer_cup",summer_cup)
     if currentMonth <= 8:
         if currentMonth in [6,7] and summer_cup == "eu":
             data = {"season":str(currentYear)}
@@ -402,7 +411,7 @@ def main():
     elif request.method == "POST":
         n_season = request.form.get("season")
         s_league = request.form.get("league")
-        print("================")
+        # print("================")
         print(n_season,s_league)
         # Store value in session
         session['s_league'] = s_league
