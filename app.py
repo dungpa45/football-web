@@ -296,31 +296,27 @@ def player_infomation(n_season,player_id):
     if d_player_mongo is None or d_trophies_mongo is None or d_transfer_mongo is None:
         # infomation
         dic_data = get_player_info(player_id,n_season)
-        list_data = handle_data_player_info(dic_data)
+        player_info = handle_data_player_info(dic_data)
         save_in_mongo("players",dic_data)
         # trophies
         d_trophies_data = get_player_trophies(player_id)
-        list_trop_data = handle_data_trophies(d_trophies_data)
+        trophies, num_trophies = handle_data_trophies(d_trophies_data)
         save_in_mongo("trophies",d_trophies_data)
         # transfers
         d_transfer_data = get_transfer(player_id)
-        list_trans_data = handle_data_transfer(d_transfer_data)
+        career_history = handle_data_transfer(d_transfer_data, n_season)
         save_in_mongo("transfers",d_transfer_data)
     # check data in mongo
     else:
-        list_data = handle_data_player_info(d_player_mongo)
-        list_trop_data = handle_data_trophies(d_trophies_mongo)
-        list_trans_data = handle_data_transfer(d_transfer_mongo)
-    list_data = html_replace(list_data)
-    l_trop_data = html_replace(list_trop_data[0])
-    l_trans_data = html_replace(list_trans_data)
-    num_trophies = list_trop_data[1]
+        player_info = handle_data_player_info(d_player_mongo)
+        trophies, num_trophies = handle_data_trophies(d_trophies_mongo)
+        career_history = handle_data_transfer(d_transfer_mongo, n_season)
     
     s_league = session.get("s_league",None)
     n_season = session.get("n_season",None)
     return render_template("player_info.html",n_season=n_season,s_league=s_league,
-                           listitem=list_data, list_trop=l_trop_data, 
-                           no_trophies=num_trophies, list_trans=l_trans_data
+                           player_info=player_info, trophies=trophies, 
+                           no_trophies=num_trophies, career_history=career_history
                            )
 
 # Site topscorers of league

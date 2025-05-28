@@ -1,13 +1,15 @@
-import pymongo, os
+import os
+import pymongo
 from dotenv import load_dotenv
-
+from urllib.parse import quote_plus
 load_dotenv()
 
 USERMONGO = os.getenv("username")
-PASSMONGO = os.getenv("password")
+PASSMONGO = quote_plus(os.getenv("password"))
 
-myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
-# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@localhost:27017/")
+# myclient = pymongo.MongoClient(f"mongodb://{USERMONGO}:{PASSMONGO}@mongodb:27017/")
+myclient = pymongo.MongoClient(f"mongodb+srv://{USERMONGO}:{PASSMONGO}@cluster0.wbx8bpm.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+
 my_db = myclient['football']
 
 def save_in_mongo(coll_name,data):

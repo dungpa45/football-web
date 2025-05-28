@@ -1,8 +1,8 @@
-<div id="topbar" style=" font-weight: bold;">
-    <a class="w3-btn" href="/">Home</a>
+<div id="topbar">
+    <a class="home-btn" href="/">Home</a>
     <form action="/" method="POST">
         <label for="league">League:</label>
-        <select name="league" id="league">
+        <select name="league" id="league" class="select-league">
             <option value="epl" {% if s_league=="epl" %} selected {% endif %}>English Premier League</option>
             <option value="laliga" {% if s_league=="laliga" %} selected {% endif %}>La Liga</option>
             <option value="seriea" {% if s_league=="seriea" %} selected {% endif %}>Serie A</option>
@@ -11,7 +11,7 @@
         </select>
 
         <label for="season">Season:</label>
-        <select name="season" id="season" required>
+        <select name="season" id="season" class="select-season" required>
             <option value="2010" {% if n_season=="2010" %} selected {% endif %}>2010-2011</option>
             <option value="2011" {% if n_season=="2011" %} selected {% endif %}>2011-2012</option>
             <option value="2012" {% if n_season=="2012" %} selected {% endif %}>2012-2013</option>
@@ -29,8 +29,9 @@
             <option value="2024" {% if n_season=="2024" %} selected {% endif %}>2024-2025</option>
         </select>
 
-        <input type="submit" name="league-type" value="Standings">
-        <input type="submit" name="league-type" value="TopScore">
-        <input type="submit" name="league-type" value="TopAssist">
+        <input type="submit" name="league-type" value="Standings" class="header-btn">
+        <input type="submit" name="league-type" value="TopScore" class="header-btn">
+        <input type="submit" name="league-type" value="TopAssist" class="header-btn">
     </form>
+    <link rel="stylesheet" href="{{ url_for('static',filename='header-style.css') }}">
 </div>

@@ -7,6 +7,7 @@
     <title>Footballer Information</title>
     <link rel="shortcut icon" href="{{ url_for('static',filename='favicon.ico') }}" />
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
     <script src="https://code.jquery.com/jquery-3.3.1.js"
         integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous">
@@ -18,50 +19,158 @@
         });
     </script>
     <style>
-        #standings {
-            max-width: 900px;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            padding: 20px;
+        }
+        .section-title {
+            color: #1a237e;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .section-title i {
+            margin-right: 10px;
+        }
+        .table-container {
+            overflow-x: auto;
+            margin: 0 -20px;
+            padding: 0 20px;
+        }
+        .w3-table-all {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .w3-table-all th {
+            background-color: #1a237e;
+            color: white;
+            font-weight: 500;
+        }
+        .w3-table-all tr:nth-child(even) {
+            background-color: #f5f5f5;
+        }
+        .w3-table-all tr:hover {
+            background-color: #e8eaf6;
+        }
+        .trophy-count {
+            background: #ffd700;
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        #c1, #wc, #c2 {
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 2px 0;
+        }
+        #c1 { background: #ffd700; }
+        #wc { background: #4caf50; color: white; }
+        #c2 { background: #ff9800; }
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            .section {
+                padding: 15px;
+            }
+        }
+        .highlight-champions { background: #bbdefb !important; }
+        .highlight-worldcup { background: #c8e6c9 !important; }
+        .highlight-europa { background: #ffe0b2 !important; }
+        .highlight-euro { background: #e1bee7 !important; }
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+            .section { margin-bottom: 24px; }
         }
     </style>
 </head>
 
-<body>
+<body class="w3-light-grey">
     {% include "header.html" %}
 
-    <div id="standings" class="w3-container",style="overflow-x:auto;">
-        <div id="Trophy">
-            <b>Information</b>
+    <div class="container" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 32px; align-items: flex-start;">
+        <div class="section">
+            <div class="section-title">
+                <i class="fas fa-user"></i> Player Information
+            </div>
+            <div class="table-container">
+                <table class="w3-table-all w3-medium">
+                  <tbody>
+                  {% for label, value in player_info %}
+                    {% if label == 'Image' %}
+                      <tr>
+                        <td colspan="2">{{ value|safe }}</td>
+                      </tr>
+                    {% else %}
+                      <tr>
+                        <th style="width: 180px;">{{ label }}</th>
+                        <td>{{ value|safe }}</td>
+                      </tr>
+                    {% endif %}
+                  {% endfor %}
+                  </tbody>
+                </table>
+            </div>
         </div>
-        <table id="myTable" class="w3-table-all w3-medium">
-            {% autoescape false %}
-            {{listitem}}
-            {% endautoescape %}
-        </table>
-    </div>
-    <div id="standings" class="w3-container">
-        <div id="Trophy">
-            <b>Career Clubs</b>
+        <div style="display: flex; flex-direction: column; gap: 32px;">
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-exchange-alt"></i> Career Clubs
+                </div>
+                <div class="table-container">
+                    <table class="w3-table-all w3-medium" style="margin: 0;">
+                        <thead>
+                            <tr style="background: #0d47a1; color: #fff;">
+                                <th>Date</th>
+                                <th>Fee</th>
+                                <th>From</th>
+                                <th>To</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for move in career_history %}
+                            <tr>
+                                <td>{{ move.date }}</td>
+                                <td>{{ move.fee }}</td>
+                                <td>{{ move.from|safe }}</td>
+                                <td>{{ move.to|safe }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">
+                    <i class="fas fa-trophy"></i> Trophies ({{no_trophies}})
+                </div>
+                <div class="table-container">
+                    <table class="w3-table-all w3-medium" style="margin: 0;">
+                        <tbody>
+                            {% for trophy in trophies %}
+                            <tr{% if trophy.highlight %} class="{{ trophy.class }}"{% endif %}>
+                                <td>{{ trophy.text|safe }}</td>
+                                <td>{{ trophy.country }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
-    <div id="standings" class="w3-container",style="overflow-x:auto;">
-        <table id="myTable" class="w3-table-all w3-medium">
-            {% autoescape false %}
-            {{list_trans}}
-            {% endautoescape %}
-        </table>
-    </div>
-    <div id="standings" class="w3-container">
-        <div id="Trophy">
-            <b>Trophies ({{no_trophies}})</b>
-        </div>
-    </div>
-    <div id="standings" class="w3-container",style="overflow-x:auto;">
-        <table id="myTable" class="w3-table-all w3-medium">
-            {% autoescape false %}
-            {{ list_trop }}
-            {% endautoescape %}
-        </table>
-    </div>
- 
 </body>
 
 </html>

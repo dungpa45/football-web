@@ -13,9 +13,15 @@
 </head>
 
 <body>
-    {% include "header.html" %}
-    <div style="text-align: center; font-weight: bold; font-size: larger;">
-        <img width="48" height="auto" src={{logo_image}}><label> {{league}} {{season}}</label>
+    <div class="header-flex">
+        {% include "header.html" %}
+        <div class="league-header">
+            <img class="league-logo" src="{{logo_image}}" alt="League Logo">
+            <div class="league-title">
+                <span class="league-name">{{league}}</span>
+                <span class="league-season">{{season}}</span>
+            </div>
+        </div>
     </div>
     <div id="standings" class="w3-container">
         <table id="myTableLeague" class="w3-table-all w3-medium sortable">

@@ -239,9 +239,7 @@ def handle_data_player_info(json_data):
     season = json_data["parameters"]["season"]
     this_season = season + " - " + str(int(season)+1)
     player_id = d_data["id"]
-    name_player = d_data["name"]
     full_name = d_data["firstname"] + " " + d_data["lastname"]
-    image = d_data["photo"]
     image = f'<img align="left" max-width="100px" height="auto" src="/images/players/{player_id}.png">'
     age = d_data["age"]
     nation = d_data["nationality"]
@@ -255,59 +253,68 @@ def handle_data_player_info(json_data):
     position = d_stat["games"]["position"]
     rating = d_stat["games"]["rating"]
     goals_assist = str(d_stat["goals"]["total"]) + "/" + str(d_stat["goals"]["assists"])
-    l_mess = [
-        ["",image],
-        ["Full Name",full_name],["Position",position],
-        ["Nationality",nation],["Age",age],["Birth",birth],
-        ["Birth place",birth_place],["Height",height],
-        ["Weight",weight],["Team",team],
-        ["Season stats",this_season],
-        ["Appearences / Lineups", appear],
-        ["Goals / Assists", goals_assist],
-        ["Rating", rating]
-        ]
-    message = tabulate(l_mess,tablefmt='html')
-    return message
+    player_info = [
+        ("Image", image),
+        ("Full Name", full_name),
+        ("Position", position),
+        ("Nationality", nation),
+        ("Age", age),
+        ("Birth", birth),
+        ("Birth place", birth_place),
+        ("Height", height),
+        ("Weight", weight),
+        ("Team", team),
+        ("Season stats", this_season),
+        ("Appearences / Lineups", appear),
+        ("Goals / Assists", goals_assist),
+        ("Rating", rating)
+    ]
+    return player_info
 
 # Xu ly data trophy
 def handle_data_trophies(json_trophy_data):
     l_data = json_trophy_data["response"]
+    trophies = []
     no = 1
-    l_mess = []
     for trophy in l_data:
         league = trophy["league"]
         country = trophy["country"]
         s_season = " ("+trophy["season"]+")"
         place = trophy["place"]
         if place == "Winner":
-            trophy = str(no)+" - "+league+s_season
+            text = f"{no} - {league}{s_season}"
+            highlight = False
+            css_class = ""
             if "UEFA Champions League" in league:
-                trophy = f'<div id="c1">{trophy}</div>'
+                highlight = True
+                css_class = "highlight-champions"
             elif "FIFA World Cup" in league:
-                trophy = f'<div id="wc">{trophy}</div>'
+                highlight = True
+                css_class = "highlight-worldcup"
             elif "UEFA Europa League" in league:
-                trophy = f'<div id="c2">{trophy}</div>'
-            l_cup = [trophy, country]
-        else:
-            continue
-        no+=1
-        l_mess.append(l_cup)
-    no_trophies = no -1
-    message = tabulate(l_mess, tablefmt='html')
-    return message, no_trophies
+                highlight = True
+                css_class = "highlight-europa"
+            elif "UEFA European Championship" in league or "Euro Championship" in league:
+                highlight = True
+                css_class = "highlight-euro"
+            trophies.append({
+                "text": text,
+                "country": country,
+                "highlight": highlight,
+                "class": css_class
+            })
+            no += 1
+    return trophies, no-1
 
 # Xu ly data transfer
-def handle_data_transfer(json_trans_data):
+def handle_data_transfer(json_trans_data, n_season):
     if json_trans_data["results"] == 0:
-        l_mess =[" "]
-        list_headers = ["No data"]
-        message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
-        return message
+        return []
     l_data = json_trans_data["response"][0]["transfers"]
-    l_mess =[]
+    transfers = []
     for tr in l_data:
         date = tr["date"]
-        s_type = tr["type"]
+        fee = tr.get("fee") or tr["type"]  # Prefer fee, fallback to type
         team_out_id = tr["teams"]["out"]["id"]
         team_in_id = tr["teams"]["in"]["id"]
         team_out_name = tr["teams"]["out"]["name"]
@@ -315,15 +322,16 @@ def handle_data_transfer(json_trans_data):
         check_n_down_images("teams",team_out_id)
         check_n_down_images("teams",team_in_id)
         team_out_image = f'<img align="left" width="28" height="28" src="/images/teams/{team_out_id}.png" loading="lazy">'+\
-                f'<a href="/teams/{team_out_id}">' + team_out_name + "</a>"
+                f'<a href="/teams/{team_out_id}/{n_season}">' + team_out_name + "</a>"
         team_in_image = f'<img align="left" width="28" height="28" src="/images/teams/{team_in_id}.png" loading="lazy">'+\
-                f'<a href="/teams/{team_in_id}">' + team_in_name + "</a>"
-        
-        l_tran = [date, s_type, team_out_image, team_in_image]
-        l_mess.append(l_tran)
-    list_headers = ["Date","Type","From","To"]
-    message = tabulate(l_mess, headers=list_headers,tablefmt='html', colalign=("left" for i in list_headers))
-    return message
+                f'<a href="/teams/{team_in_id}/{n_season}">' + team_in_name + "</a>"
+        transfers.append({
+            "date": date,
+            "fee": fee,
+            "from": team_out_image,
+            "to": team_in_image
+        })
+    return transfers
 
 # Xu ly data top score
 def handle_data_top_score(json_data,this_season):

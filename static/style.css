@@ -112,3 +112,58 @@ img {
 #standings td div#wc {
   background-color: gold;
 }
+
+/* League/season header card styles */
+.league-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: linear-gradient(90deg, #e3eafc 0%, #f8fafc 100%);
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(30,40,90,0.07);
+    padding: 10px 24px;
+    margin: 22px auto 24px auto;
+    max-width: 600px;
+}
+.league-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(30,40,90,0.10);
+    background: #fff;
+    padding: 6px;
+}
+.league-title {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+.league-name {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #1a237e;
+    letter-spacing: 0.5px;
+}
+.league-season {
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #374151;
+    opacity: 0.85;
+}
+@media (max-width: 600px) {
+    .league-header {
+        flex-direction: column;
+        gap: 12px;
+        padding: 14px 8px;
+    }
+    .league-logo {
+        width: 48px;
+        height: 48px;
+    }
+    .league-title {
+        align-items: center;
+    }
+}
