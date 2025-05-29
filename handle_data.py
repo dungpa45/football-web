@@ -3,6 +3,11 @@ import requests, os
 
 def down_images(type, id):
     id = str(id)
+    # Create directory if it doesn't exist
+    directory = f'./images/{type}'
+    if not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
+        
     link = f'https://media.api-sports.io/football/{type}/{id}.png'
     img_data = requests.get(link,stream=True).content
     with open(f'./images/{type}/{id}.png', 'wb') as handler:
@@ -28,7 +33,7 @@ def handle_data_standing(json_data,n_season):
         team_id = team['team']['id']
         check_n_down_images("teams",team_id)
         rank = team['rank']
-        name = f'<img align="left" width="28" height="28" src="/images/teams/{team_id}.png">'+\
+        name = f'<img style="width: 28px; height: 28px; min-width: 28px; min-height: 28px; object-fit: contain;" align="left" src="/images/teams/{team_id}.png">'+\
                 f'<a href="/teams/{team_id}/{n_season}">' + team['team']["name"] + "</a>"
         point = '<b>'+str(team["points"])+'</b>'
         description = team["description"]
@@ -64,7 +69,7 @@ def handle_data_cup_standing(json_data,n_season,s_league):
                 for team in group:
                     team_id = team["team"]["id"]
                     check_n_down_images("teams",team_id)
-                    img_name = f'<img width="28" height="28" src="/images/teams/{team_id}.png"> '+\
+                    img_name = f'<img style="width: 28px; height: 28px; min-width: 28px; min-height: 28px; object-fit: contain;" align="left" src="/images/teams/{team_id}.png">'+\
                         f'<a href="/teams/{team_id}/{n_season}">' + team['team']["name"] + "</a>"
                     if team['group'] == "Ranking of third-placed teams":
                         continue
@@ -93,7 +98,7 @@ def handle_data_cup_standing(json_data,n_season,s_league):
             for team in l_table:
                 if team['group'] == "Ranking of third-placed teams":
                     team_id = team["team"]["id"]
-                    img_name = f'<img width="28" height="28" src="/images/teams/{team_id}.png"> '+\
+                    img_name = f'<img style="width: 28px; height: 28px; min-width: 28px; min-height: 28px; object-fit: contain;" align="left" src="/images/teams/{team_id}.png">'+\
                                     f'<a href="/teams/{team_id}/{n_season}">' + team['team']["name"] + "</a>"
                     if team["description"]:
                         des = team["description"][:9]
@@ -135,9 +140,9 @@ def handle_coach_for_team(json_data, team_id):
     coach_id = d_data["id"]
     check_n_down_images("coachs",coach_id)
     name = d_data["name"]
-    photo_name = f'<img align="left" width="80" height="80" src="/images/coachs/{coach_id}.png" loading="lazy">'+\
-                f'<a style="top: 40%; position: absolute;" href="/coachs/{coach_id}/{team_id}"> {name} </a>'
-    html_coach = f"<tr><td> Coach </td> <td>{photo_name}</td> </tr>"
+    photo_name = f'<img style="width: 90px; height: 90px; object-fit: cover; border-radius: 50%; margin-right: 15px; vertical-align: middle;" src="/images/coachs/{coach_id}.png" loading="lazy">'+\
+                f'<a style="vertical-align: middle; font-size: 1.1em; font-weight: 500;" href="/coachs/{coach_id}/{team_id}"> <br> {name} </a>'
+    html_coach = f'<div class="team-details" style="grid-column: 2"><table class="w3-table"><tr><td style="width: 120px; font-weight: bold;">Coach</td><td>{photo_name}</td></tr></table></div>'
     return html_coach
 
 # xu ly data coach
@@ -147,7 +152,7 @@ def handle_data_coach(json_data):
     check_n_down_images("coachs",coach_id)
     name = d_data["name"]
     full_name = d_data["firstname"]+" "+d_data["lastname"]
-    image = f'<img align="left" max-width="100px" height="auto" src="/images/coachs/{coach_id}.png">'
+    image = f'<img style="width: 100px; height: auto; max-width: 100px; max-height: auto;" align="left" src="/images/coachs/{coach_id}.png">'
     n_age = d_data["age"]
     nation = d_data["nationality"]
     birth = d_data["birth"]["date"]
@@ -173,7 +178,7 @@ def handle_data_coach(json_data):
         end = team["end"]
         if not end:
             end = "Now"
-        image_name = f'<img align="left" width="38" height="38" src="/images/teams/{team_id}.png">'+\
+        image_name = f'<img style="width: 38px; height: 38px; min-width: 38px; min-height: 38px; object-fit: contain;" align="left" src="/images/teams/{team_id}.png">'+\
                 f'<a href="/teams/{team_id}">' + team["team"]["name"] + "</a>"
         time_coach = start+" - "+end
         l_team = [image_name, time_coach]
@@ -190,8 +195,6 @@ def handle_data_team_info(json_data):
     team_name = d_data["team"]["name"]
     country = d_data["team"]["country"]
     founded = d_data["team"]["founded"]
-    logo = d_data["team"]["logo"]
-    logo = f'<img align="left" max-width="100px" height="auto" src="/images/teams/{team_id}.png">'
     stadium = d_data["venue"]["name"]
     venue_id = d_data["venue"]["id"]
     check_n_down_images("venues",venue_id)
@@ -199,36 +202,50 @@ def handle_data_team_info(json_data):
     city = d_data["venue"]["city"]
     capacity = d_data["venue"]["capacity"]
     surface = d_data["venue"]["surface"]
-    image = d_data["venue"]["image"]
-    image = f'<img align="left" max-width="100px" height="auto" src="/images/venues/{venue_id}.png">'
-    l_mess = []
-    # l_items = [team_name,country,founded,logo,stadium,address,city,capacity,surface,image]
-    # l_mess.append(l_items)
-    l_mess = [
-        ["",logo],
-        ["Team Name",team_name],["Country",country],
-        ["Founded",founded],["Stadium",stadium],
-        ["Address",address],["City",city],
-        ["Capacity",capacity],["Surface",surface],
-        ["",image]
-        ]
-    message = tabulate(l_mess,tablefmt='html')
+
+    # Left: logo + team name
+    logo_html = f'''<div class="team-logo">
+        <img src="/images/teams/{team_id}.png">
+        <div class="team-name-under-logo">{team_name}</div>
+    </div>'''
+
+    # Right: stadium image + stadium name
+    stadium_html = f'''<div class="stadium-image">
+        <img src="/images/venues/{venue_id}.png">
+        <div class="stadium-name-under-image">{stadium}</div>
+    </div>'''
+
+    # Center: details table (excluding team name and stadium)
+    details_html = f'''
+    <div class="team-details">
+        <table class="w3-table">
+            <tr><td>Country</td><td><span style="font-weight: 500;">{country}</span></td></tr>
+            <tr><td>Founded</td><td>{founded}</td></tr>
+            <tr><td>Address</td><td>{address}</td></tr>
+            <tr><td>City</td><td>{city}</td></tr>
+            <tr><td>Capacity</td><td>{capacity:,}</td></tr>
+            <tr><td>Surface</td><td>{surface}</td></tr>
+        </table>
+    </div>'''
+
+    # Combine all sections for grid columns
+    message = logo_html + details_html + stadium_html
     return message
 
 def handle_data_squad(json_data,n_season):
     d_data = json_data["response"][0]
     l_mess = []
-    for data in d_data["players"]:
+    for idx, data in enumerate(d_data["players"], 1):
         player_id = data["id"]
         check_n_down_images("players",player_id)
-        name_player = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
-                f'<a href="/players/{player_id}/{n_season}">' + data["name"] + "</a>"
+        name_player = f'<img style="width: 45px; height: 45px; object-fit: cover; vertical-align: middle; margin-right: 10px;" src="/images/players/{player_id}.png" loading="lazy">' +\
+                f'<a style="vertical-align: middle; font-weight: 500;" href="/players/{player_id}/{n_season}">' + data["name"] + "</a>"
         age = data["age"]
-        no = data["number"]
+        no = data["number"] or "-"
         position = data["position"]
-        l_row = [name_player,age,position,no]
+        l_row = [idx, name_player, age, position, no]
         l_mess.append(l_row)
-    list_headers = ["Name","Age","Position","No"]
+    list_headers = ["No", "Name","Age","Position","No"]
     message = tabulate(l_mess, headers=list_headers, tablefmt='html', colalign=("left" for i in list_headers))
     return message
 
@@ -240,7 +257,7 @@ def handle_data_player_info(json_data):
     this_season = season + " - " + str(int(season)+1)
     player_id = d_data["id"]
     full_name = d_data["firstname"] + " " + d_data["lastname"]
-    image = f'<img align="left" max-width="100px" height="auto" src="/images/players/{player_id}.png">'
+    image = f'<img style="width: 100px; height: auto; max-width: 100px; max-height: auto;" align="left" src="/images/players/{player_id}.png">'
     age = d_data["age"]
     nation = d_data["nationality"]
     birth = d_data["birth"]["date"]
@@ -321,9 +338,9 @@ def handle_data_transfer(json_trans_data, n_season):
         team_in_name = tr["teams"]["in"]["name"]
         check_n_down_images("teams",team_out_id)
         check_n_down_images("teams",team_in_id)
-        team_out_image = f'<img align="left" width="28" height="28" src="/images/teams/{team_out_id}.png" loading="lazy">'+\
+        team_out_image = f'<img style="width: 28px; height: 28px; min-width: 28px; min-height: 28px; object-fit: contain;" align="left" src="/images/teams/{team_out_id}.png" loading="lazy">'+\
                 f'<a href="/teams/{team_out_id}/{n_season}">' + team_out_name + "</a>"
-        team_in_image = f'<img align="left" width="28" height="28" src="/images/teams/{team_in_id}.png" loading="lazy">'+\
+        team_in_image = f'<img style="width: 28px; height: 28px; min-width: 28px; min-height: 28px; object-fit: contain;" align="left" src="/images/teams/{team_in_id}.png" loading="lazy">'+\
                 f'<a href="/teams/{team_in_id}/{n_season}">' + team_in_name + "</a>"
         transfers.append({
             "date": date,
@@ -351,9 +368,9 @@ def handle_data_top_score(json_data,this_season):
         team_id = data["statistics"][0]['team']['id']
         check_n_down_images("teams",team_id)
 
-        name = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
+        name = f'<img style="width: 38px; height: 38px; min-width: 38px; min-height: 38px; object-fit: contain;" align="left" src="/images/players/{player_id}.png" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{this_season}">' + data["player"]["name"] + "</a>"
-        club = f'<img align="left" width="28" height="28" src="/images/teams/{team_id}.png" loading="lazy">'+\
+        club = f'<img style="width: 28px; height: 28px; min-width: 28px; min-height: 28px; object-fit: contain;" align="left" src="/images/teams/{team_id}.png" loading="lazy">'+\
                 f'<a href="/teams/{team_id}/{this_season}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]
@@ -391,9 +408,9 @@ def handle_data_top_assist(json_data,this_season):
         team_id = data["statistics"][0]['team']['id']
         check_n_down_images("teams",team_id)
 
-        name = f'<img align="left" width="38" height="38" src="/images/players/{player_id}.png" loading="lazy">' +\
+        name = f'<img style="width: 38px; height: 38px; min-width: 38px; min-height: 38px; object-fit: contain;" align="left" src="/images/players/{player_id}.png" loading="lazy">' +\
                 f'<a href="/players/{player_id}/{this_season}">' + data["player"]["name"] + "</a>"
-        club = f'<img align="left" width="28" height="28" src="/images/teams/{team_id}.png" loading="lazy">'+\
+        club = f'<img style="width: 28px; height: 28px; min-width: 28px; min-height: 28px; object-fit: contain;" align="left" src="/images/teams/{team_id}.png" loading="lazy">'+\
                 f'<a href="/teams/{team_id}/{this_season}">' + data["statistics"][0]['team']["name"] + "</a>"
         # age = data["player"]["age"]
         date = data["player"]["birth"]["date"]

@@ -12,6 +12,158 @@
     <script src="https://code.jquery.com/jquery-3.3.1.js"
         integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous">
         </script>
+    <style>
+        .team-info-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        .team-info-layout {
+            display: grid;
+            grid-template-columns: 200px 1fr 600px;
+            gap: 20px;
+            align-items: start;
+            margin-bottom: 30px;
+        }
+        .team-logo {
+            text-align: center;
+            padding: 20px;
+        }
+        .team-logo img {
+            width: 180px;
+            height: 180px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto;
+        }
+        .team-name-under-logo {
+            margin-top: 18px;
+            font-size: 2.1em;
+            font-weight: bold;
+            color: #1a237e;
+            letter-spacing: 1px;
+        }
+        .team-details {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 1px;
+        }
+        .stadium-image {
+            text-align: center;
+        }
+        .stadium-image img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .stadium-name-under-image {
+            margin-top: 14px;
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #0d47a1;
+            letter-spacing: 0.5px;
+        }
+        .team-header {
+            background: linear-gradient(135deg, #1a237e, #0d47a1);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .info-table {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        .info-table td {
+            padding: 12px 15px;
+            vertical-align: middle;
+        }
+        .squad-header {
+            background: linear-gradient(135deg, #1a237e, #0d47a1);
+            color: white;
+            padding: 20px 0;
+            border-radius: 8px 8px 0 0;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+        .squad-table {
+            background: white;
+            border-radius: 0 0 8px 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            font-size: 1.15em;
+            padding: 10px 0 20px 0;
+        }
+        .squad-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .squad-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        img {
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .team-details td:first-child {
+            font-weight: bold;
+            width: 120px;
+        }
+        .team-details td {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .team-details tr:last-child td {
+            border-bottom: none;
+        }
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            grid-column: 3;
+            min-width: 400px;
+            max-width: 700px;
+            width: 100%;
+        }
+        .stadium-image {
+            width: 100%;
+        }
+        .squad-header, .squad-table {
+            width: 100%;
+        }
+        @media (max-width: 1024px) {
+            .team-info-layout {
+                grid-template-columns: 1fr;
+            }
+            .right-column {
+                grid-column: 1;
+                min-width: unset;
+                max-width: unset;
+            }
+            .squad-header {
+                font-size: 1.3em;
+            }
+            .squad-table {
+                font-size: 1em;
+            }
+            .team-logo img {
+                width: 150px;
+                height: 150px;
+            }
+        }
+    </style>
     <script>
         $(function () {
             $("#header").load("header.html");
@@ -23,23 +175,27 @@
 <body>
     {% include "header.html" %}
 
-    <div id="standings" class="w3-container">
-        <table id="myTable" class="w3-table-all w3-medium">
+    <div class="team-info-container">
+        <div class="team-info-layout">
             {% autoescape false %}
             {{listitem}}
             {{list_coach}}
             {% endautoescape %}
-        </table>
-        <div id="standings" class="w3-container" style="background: darkgray;"><b class="w3-container w3-medium" align="center"> Current Squad</b></div>
+            <div class="right-column">
+                <div class="stadium-image">
+                    <!-- Stadium image and name will be injected by listitem -->
+                </div>
+                <div class="squad-header">Current Squad</div>
+                <div class="squad-table">
+                    <table class="w3-table-all w3-medium sortable">
+                        {% autoescape false %}
+                        {{list_squad}}
+                        {% endautoescape %}
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="standings" class="w3-container">
-        <table id="myTable" class="w3-table-all w3-medium sortable">
-            {% autoescape false %}
-            {{list_squad}}
-            {% endautoescape %}
-        </table>
-    </div>
- 
 </body>
 
 </html>
