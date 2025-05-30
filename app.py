@@ -101,6 +101,11 @@ def get_player_trophies(player_id):
     json_data = json_process(query)
     return json_data
 
+def get_coach_trophies(coach_id):
+    query = f"/trophies?coach={coach_id}"
+    json_data = json_process(query)
+    return json_data
+
 def get_squads(team_id):
     query = f"/players/squads?team={team_id}"
     json_data = json_process(query)
@@ -156,6 +161,7 @@ def get_this_season(summer_cup=None):
         my_coll = my_db["current_season"]
         n_this_season = my_coll.find_one()["season"]
     return n_this_season
+
 
 # ========================================================
 # =============== ROUTE ==================================
@@ -267,22 +273,65 @@ def team_infomation(team_id,n_season):
 @app.route("/coachs/<coach_id>/<team_id>",methods=["GET","POST"])
 def coach_infomation(coach_id,team_id):
     coach_query = {"parameters": {"team":str(team_id)}}
+    trophies_query = {"parameters": {"coach":str(coach_id)}}
     d_coach_mongo = get_data_mongo("coachs",coach_query)
+    d_trophies_mongo = get_data_mongo("trophies",trophies_query)
+    
     # Get data from api
     if d_coach_mongo is None:
         d_data = get_coachs(team_id)
         save_in_mongo("coachs",d_data)
         l_data_coach = handle_data_coach(d_data)
+        career_data = d_data["response"][0]
     else:
         l_data_coach = handle_data_coach(d_coach_mongo)
-        
-    l_info_coach = html_replace(l_data_coach[0])
-    l_career_coach = html_replace(l_data_coach[1])
+        career_data = d_coach_mongo["response"][0]
+    
+    # Get career start date
+    career = career_data["career"]
+    first_job = min(career, key=lambda x: x["start"])
+    career_start = first_job["start"]
+    
+    # Get trophies data
+    if d_trophies_mongo is None:
+        d_trophies_data = get_coach_trophies(coach_id)
+        trophies, num_trophies = handle_data_coach_trophies(d_trophies_data, career_start)
+        save_in_mongo("trophies",d_trophies_data)
+    else:
+        trophies, num_trophies = handle_data_coach_trophies(d_trophies_mongo, career_start)
+    
+    # Separate trophies into coach and player sections
+    coach_trophies = [t for t in trophies if t["is_coach"]]
+    player_trophies = [t for t in trophies if not t["is_coach"]]
+    num_coach_trophies = len(coach_trophies)
+    num_player_trophies = len(player_trophies)
+    
+    # Calculate additional statistics
+    last_job = max(career, key=lambda x: x["end"] if x["end"] else "9999")
+    start_year = int(career_start.split("-")[0])
+    end_year = int(last_job["end"].split("-")[0]) if last_job["end"] else datetime.now().year
+    career_years = end_year - start_year
+    
+    # Count teams managed
+    teams_managed = len(set(job["team"]["id"] for job in career))
     
     s_league = session.get("s_league",None)
     n_season = session.get("n_season",None)
-    return render_template("coach_info.html",listinfo=l_info_coach, listcareer=l_career_coach,
-                           n_season=n_season, s_league=s_league)
+    # Pass n_season to handle_data_coach for correct team links
+    l_info_coach = html_replace(l_data_coach[0])
+    l_career_coach = html_replace(handle_data_coach(d_coach_mongo, n_season)[1])
+    return render_template("coach_info.html",
+                         listinfo=l_info_coach, 
+                         listcareer=l_career_coach,
+                         coach_trophies=coach_trophies,
+                         player_trophies=player_trophies,
+                         no_trophies=num_trophies,
+                         num_coach_trophies=num_coach_trophies,
+                         num_player_trophies=num_player_trophies,
+                         career_years=career_years,
+                         teams_managed=teams_managed,
+                         n_season=n_season, 
+                         s_league=s_league)
 # Site player info's of league
 @app.route("/players/<player_id>/<n_season>",methods=["GET","POST"])
 def player_infomation(n_season,player_id):

@@ -146,7 +146,7 @@ def handle_coach_for_team(json_data, team_id):
     return html_coach
 
 # xu ly data coach
-def handle_data_coach(json_data):
+def handle_data_coach(json_data, n_season=None):
     d_data = json_data["response"][0]
     coach_id = d_data["id"]
     check_n_down_images("coachs",coach_id)
@@ -178,14 +178,74 @@ def handle_data_coach(json_data):
         end = team["end"]
         if not end:
             end = "Now"
+        # Use n_season if provided, else fallback to old link
+        if n_season:
+            team_link = f'/teams/{team_id}/{n_season}'
+        else:
+            team_link = f'/teams/{team_id}'
         image_name = f'<img style="width: 38px; height: 38px; min-width: 38px; min-height: 38px; object-fit: contain;" align="left" src="/images/teams/{team_id}.png">'+\
-                f'<a href="/teams/{team_id}">' + team["team"]["name"] + "</a>"
+                f'<a href="{team_link}">' + team["team"]["name"] + "</a>"
         time_coach = start+" - "+end
         l_team = [image_name, time_coach]
         mess_career.append(l_team)
     message = tabulate(l_mess,tablefmt='html')
     message2 = tabulate(mess_career,tablefmt='html')
     return message, message2
+
+def handle_data_coach_trophies(json_trophy_data, career_start=None):
+    l_data = json_trophy_data["response"]
+    trophies = []
+    no = 1
+    # Convert career start to year if provided
+    career_start_year = None
+    if career_start:
+        try:
+            career_start_year = int(career_start.split("-")[0])
+        except (ValueError, AttributeError):
+            pass
+
+    for trophy in l_data:
+        league = trophy["league"]
+        country = trophy["country"]
+        season = trophy["season"]
+        place = trophy["place"]
+        if place == "Winner":
+            # Determine if trophy was won as coach or player
+            is_coach = False
+            role = "Player"
+            if career_start_year:
+                try:
+                    trophy_year = int(season.split("/")[0])
+                    is_coach = trophy_year >= career_start_year
+                    role = "Coach" if is_coach else "Player"
+                except (ValueError, AttributeError):
+                    pass
+
+            text = f"{no} - {league} ({season})"
+            highlight = False
+            css_class = ""
+            if "UEFA Champions League" in league:
+                highlight = True
+                css_class = "highlight-champions"
+            elif "FIFA World Cup" in league:
+                highlight = True
+                css_class = "highlight-worldcup"
+            elif "UEFA Europa League" in league:
+                highlight = True
+                css_class = "highlight-europa"
+            elif "UEFA European Championship" in league or "Euro Championship" in league:
+                highlight = True
+                css_class = "highlight-euro"
+            trophies.append({
+                "text": text,
+                "country": country,
+                "highlight": highlight,
+                "class": css_class,
+                "is_coach": is_coach,
+                "role": role
+            })
+            no += 1
+    return trophies, no-1
 
 # xu ly data ve thong tin chi tiet 1 team
 def handle_data_team_info(json_data):
