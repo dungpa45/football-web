@@ -360,12 +360,27 @@ def player_infomation(n_season,player_id):
         player_info = handle_data_player_info(d_player_mongo)
         trophies, num_trophies = handle_data_trophies(d_trophies_mongo)
         career_history = handle_data_transfer(d_transfer_mongo, n_season)
-    
+
+    # Calculate total transfer fee
+    total_transfer_fee = 0
+    for move in career_history:
+        fee = move.get("fee", "")
+        fee_style = fee.replace(",", "").replace("€", "").replace("$", "").replace("M", "").replace("m", "").replace("Loan", "0").replace(" ", "")
+        # Remove currency symbols and commas, try to convert to int
+        if isinstance(fee, str) and isinstance(float(fee_style), float):
+            try:
+                total_transfer_fee += float(fee_style)
+            except Exception:
+                pass
+    # Format as currency (Euro)
+    total_transfer_fee_formatted = f"€{total_transfer_fee:,}" if total_transfer_fee else "-"
+
     s_league = session.get("s_league",None)
     n_season = session.get("n_season",None)
     return render_template("player_info.html",n_season=n_season,s_league=s_league,
                            player_info=player_info, trophies=trophies, 
-                           no_trophies=num_trophies, career_history=career_history
+                           no_trophies=num_trophies, career_history=career_history,
+                           total_transfer_fee=total_transfer_fee_formatted
                            )
 
 # Site topscorers of league

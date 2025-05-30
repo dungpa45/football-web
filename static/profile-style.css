@@ -1,0 +1,231 @@
+/* Profile Page Shared Styles (for player_info and coach_info) */
+:root {
+    --primary-color: #1a237e;
+    --secondary-color: #0d47a1;
+    --accent-color: #ffd700;
+    --text-color: #333;
+    --light-bg: #f5f5f7;
+    --card-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    --hover-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    --transition: all 0.3s ease;
+}
+body {
+    background: var(--light-bg);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    animation: fadeIn 0.5s ease-in;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.section {
+    background: white;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    padding: 24px;
+    transition: var(--transition);
+}
+.section:hover {
+    box-shadow: var(--hover-shadow);
+    transform: translateY(-2px);
+}
+.section-title {
+    color: var(--primary-color);
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.section-title i {
+    color: var(--secondary-color);
+    font-size: 1.2em;
+}
+.table-container {
+    overflow-x: auto;
+    margin: 0 -24px;
+    padding: 0 24px;
+    border-radius: 8px;
+}
+.w3-table-all {
+    border-radius: 12px;
+    overflow: hidden;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.w3-table-all th {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    font-weight: 500;
+    padding: 10px;
+    text-transform: uppercase;
+    font-size: 0.9em;
+    letter-spacing: 0.5px;
+}
+.w3-table-all td {
+    padding: 6px;
+    vertical-align: middle;
+    border-bottom: 1px solid #eee;
+}
+.w3-table-all tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+.w3-table-all tr:hover {
+    background-color: #e8eaf6;
+    transition: var(--transition);
+}
+.profile-image, .coach-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 4px solid var(--primary-color);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: var(--transition);
+}
+.profile-image:hover, .coach-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+.trophy-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    transition: var(--transition);
+    font-size: 0.95em;
+}
+.trophy-icon {
+    color: var(--accent-color);
+    font-size: 1em;
+    min-width: 16px;
+}
+.trophy-details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+.trophy-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.trophy-country {
+    font-size: 1.1em;
+    color: #000000;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.trophy-section {
+    margin-bottom: 24px;
+}
+.trophy-section:last-child {
+    margin-bottom: 0;
+}
+.trophy-section-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #eee;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.trophy-section-title i {
+    color: var(--accent-color);
+}
+.trophy-count {
+    background: var(--primary-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.9em;
+    margin-left: 8px;
+}
+.trophy-section.empty {
+    opacity: 0.7;
+}
+.trophy-section.empty .trophy-section-title {
+    color: #666;
+}
+.highlight-champions { 
+    background: linear-gradient(135deg, #272e46, #6f9ce0) !important;
+    color: white !important;
+}
+.highlight-worldcup { 
+    background: linear-gradient(135deg, #e9e777, #fffb00) !important;
+    color: black !important;
+}
+.highlight-europa { 
+    background: linear-gradient(135deg, #694103, #f1b760) !important;
+    color: white !important;
+}
+.highlight-euro { 
+    background: linear-gradient(135deg, #c533f1, #ec77e7) !important;
+    color: white !important;
+}
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+.stat-card {
+    background: white;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: var(--card-shadow);
+    transition: var(--transition);
+}
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--hover-shadow);
+}
+.stat-value {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin: 8px 0;
+}
+.stat-label {
+    color: #666;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+@media (max-width: 768px) {
+    .container {
+        padding: 12px;
+    }
+    .section {
+        padding: 16px;
+        margin-bottom: 20px;
+    }
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 900px) {
+    .container { 
+        grid-template-columns: 1fr; 
+    }
+    .section { 
+        margin-bottom: 20px; 
+    }
+} 

@@ -317,7 +317,7 @@ def handle_data_player_info(json_data):
     this_season = season + " - " + str(int(season)+1)
     player_id = d_data["id"]
     full_name = d_data["firstname"] + " " + d_data["lastname"]
-    image = f'<img style="width: 100px; height: auto; max-width: 100px; max-height: auto;" align="left" src="/images/players/{player_id}.png">'
+    image = f'<img style="width: 120px; height: auto; max-width: 120px; max-height: auto;" align="left" src="/images/players/{player_id}.png">'
     age = d_data["age"]
     nation = d_data["nationality"]
     birth = d_data["birth"]["date"]
@@ -331,20 +331,20 @@ def handle_data_player_info(json_data):
     rating = d_stat["games"]["rating"]
     goals_assist = str(d_stat["goals"]["total"]) + "/" + str(d_stat["goals"]["assists"])
     player_info = [
-        ("Image", image),
-        ("Full Name", full_name),
-        ("Position", position),
-        ("Nationality", nation),
-        ("Age", age),
-        ("Birth", birth),
-        ("Birth place", birth_place),
-        ("Height", height),
-        ("Weight", weight),
-        ("Team", team),
-        ("Season stats", this_season),
-        ("Appearences / Lineups", appear),
-        ("Goals / Assists", goals_assist),
-        ("Rating", rating)
+        ["", image],
+        ["Full Name", full_name],
+        ["Position", position],
+        ["Nationality", nation],
+        ["Age", age],
+        ["Birth", birth],
+        ["Birth place", birth_place],
+        ["Height", height],
+        ["Weight", weight],
+        ["Team", team],
+        ["Season stats", this_season],
+        ["Appearences / Lineups", appear],
+        ["Goals / Assists", goals_assist],
+        ["Rating", rating]
     ]
     return player_info
 

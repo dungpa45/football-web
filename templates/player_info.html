@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static',filename='profile-style.css') }}">
     <script src="https://code.jquery.com/jquery-3.3.1.js"
         integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous">
         </script>
@@ -18,83 +19,6 @@
             // $("#footer").load("footer.html");
         });
     </script>
-    <style>
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .section {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-            padding: 20px;
-        }
-        .section-title {
-            color: #1a237e;
-            font-size: 1.5em;
-            font-weight: bold;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e0e0e0;
-        }
-        .section-title i {
-            margin-right: 10px;
-        }
-        .table-container {
-            overflow-x: auto;
-            margin: 0 -20px;
-            padding: 0 20px;
-        }
-        .w3-table-all {
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .w3-table-all th {
-            background-color: #1a237e;
-            color: white;
-            font-weight: 500;
-        }
-        .w3-table-all tr:nth-child(even) {
-            background-color: #f5f5f5;
-        }
-        .w3-table-all tr:hover {
-            background-color: #e8eaf6;
-        }
-        .trophy-count {
-            background: #ffd700;
-            color: #000;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-weight: bold;
-            display: inline-block;
-        }
-        #c1, #wc, #c2 {
-            padding: 5px 10px;
-            border-radius: 5px;
-            margin: 2px 0;
-        }
-        #c1 { background: #ffd700; }
-        #wc { background: #4caf50; color: white; }
-        #c2 { background: #ff9800; }
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            .section {
-                padding: 15px;
-            }
-        }
-        .highlight-champions { background: #0437df !important; }
-        .highlight-worldcup { background: #dfdb08 !important; }
-        .highlight-europa { background: #e48c09 !important; }
-        .highlight-euro { background: #db8de9 !important; }
-        @media (max-width: 900px) {
-            .container { grid-template-columns: 1fr; }
-            .section { margin-bottom: 24px; }
-        }
-    </style>
 </head>
 
 <body class="w3-light-grey">
@@ -103,25 +27,48 @@
     <div class="container" style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 32px; align-items: flex-start;">
         <div class="section">
             <div class="section-title">
-                <i class="fas fa-user"></i> Player Information
+                <i class="fas fa-user"></i> Player Profile
             </div>
             <div class="table-container">
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 18px;">
+                    {% autoescape false %}
+                    {{ player_info[0][1]|safe }}
+                    {% endautoescape %}
+                </div>
                 <table class="w3-table-all w3-medium">
-                  <tbody>
-                  {% for label, value in player_info %}
-                    {% if label == 'Image' %}
-                      <tr>
-                        <td colspan="2">{{ value|safe }}</td>
-                      </tr>
-                    {% else %}
-                      <tr>
-                        <th style="width: 180px;">{{ label }}</th>
-                        <td>{{ value|safe }}</td>
-                      </tr>
-                    {% endif %}
-                  {% endfor %}
-                  </tbody>
+                    <tbody>
+                        {% for label, value in player_info[1:] %}
+                        {% if label != 'Appearences / Lineups' and label != 'Goals / Assists' %}
+                        <tr>
+                            <th style="width: 180px;">{{ label }}</th>
+                            <td>{{ value|safe }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
                 </table>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-trophy trophy-icon"></i>
+                    <div class="stat-value">{{ no_trophies }}</div>
+                    <div class="stat-label">Trophies Won</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fa-regular fa-money-bill-1"></i>
+                    <div class="stat-value">{{ total_transfer_fee }}</div>
+                    <div class="stat-label">Total Transfer Fee</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-running"></i>
+                    <div class="stat-value">{{ player_info[11][1] }}</div>
+                    <div class="stat-label">Appearances / Lineups</div>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-futbol"></i>
+                    <div class="stat-value">{{ player_info[12][1] }}</div>
+                    <div class="stat-label">Goals / Assists</div>
+                </div>
             </div>
         </div>
         <div style="display: flex; flex-direction: column; gap: 32px;">
@@ -132,7 +79,7 @@
                 <div class="table-container">
                     <table class="w3-table-all w3-medium" style="margin: 0;">
                         <thead>
-                            <tr style="background: #0d47a1; color: #fff;">
+                            <tr>
                                 <th>Date</th>
                                 <th>Fee</th>
                                 <th>From</th>
@@ -154,15 +101,22 @@
             </div>
             <div class="section">
                 <div class="section-title">
-                    <i class="fas fa-trophy"></i> Trophies ({{no_trophies}})
+                    <i class="fas fa-trophy"></i> Trophy Cabinet <span class="trophy-count">{{no_trophies}}</span>
                 </div>
                 <div class="table-container">
                     <table class="w3-table-all w3-medium" style="margin: 0;">
                         <tbody>
                             {% for trophy in trophies %}
                             <tr{% if trophy.highlight %} class="{{ trophy.class }}"{% endif %}>
-                                <td>{{ trophy.text|safe }}</td>
-                                <td>{{ trophy.country }}</td>
+                                <td>
+                                    <div class="trophy-item">
+                                        <i class="fas fa-trophy trophy-icon"></i>
+                                        <div class="trophy-details">
+                                            <div class="trophy-text">{{ trophy.text|safe }}</div>
+                                            <div class="trophy-country">{{ trophy.country }}</div>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
