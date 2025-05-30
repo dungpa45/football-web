@@ -32,15 +32,15 @@
             </div>
         </div>
     </div>
-    <div id="standings" class="w3-container">
-        <table id="Tablescore" class="w3-table-all w3-medium sortable">
-            {% autoescape false %}
-            {{listitem}}
-            {% endautoescape %}
-
-        </table>
+    <div class="card-table-container">
+        <div class="card-table">
+            <table id="Tablescore" class="w3-table-all w3-medium sortable beautiful-table">
+                {% autoescape false %}
+                {{listitem}}
+                {% endautoescape %}
+            </table>
+        </div>
     </div>
- 
 </body>
 
 </html>

@@ -167,3 +167,47 @@ img {
         align-items: center;
     }
 }
+
+/* Card Table Styles for Standings, Topscore, Topassist */
+.card-table-container {
+    margin: 0 auto 32px auto;
+    padding: 0 12px;
+}
+.card-table {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(30,40,90,0.10);
+    padding: 24px 18px 18px 18px;
+    overflow-x: auto;
+}
+.beautiful-table {
+    border-radius: 12px;
+    overflow: hidden;
+    border: none;
+    font-size: 1.05em;
+}
+.beautiful-table th {
+    background: linear-gradient(90deg, #1a237e 0%, #0d47a1 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.08em;
+    letter-spacing: 0.5px;
+    padding: 14px 8px;
+    border: none;
+}
+.beautiful-table td {
+    padding: 12px 8px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #f9fafd;
+}
+.beautiful-table tr:nth-child(even) td {
+    background: #f3f6fa;
+}
+.beautiful-table tr:hover td {
+    background: #e3eafc;
+    transition: background 0.2s;
+}
+@media (max-width: 600px) {
+    .card-table { padding: 10px 2px; }
+    .beautiful-table th, .beautiful-table td { font-size: 0.98em; padding: 8px 4px; }
+}
