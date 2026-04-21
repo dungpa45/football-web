@@ -7,7 +7,7 @@ from fotmob import (
     LEAGUES, get_standings, get_top_scorers, get_top_assists, get_top_goals_assists,
     get_available_seasons, get_player_info,
     get_team_info, get_team_squad, get_team_coach, get_team_venue,
-    get_team_coach_history, get_tm_trophies,
+    get_team_coach_history,
 )
 from honours_db import (
     ensure_indexes, get_player_honours, save_player_honours,

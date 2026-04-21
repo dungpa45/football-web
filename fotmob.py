@@ -6,6 +6,7 @@ Lấy dữ liệu từ FotMob thông qua scraping __NEXT_DATA__ và data.fotmob.
 import requests
 import json
 from bs4 import BeautifulSoup
+from cache import get_cached, set_cached, TTL_LEAGUE_PAGE, TTL_STANDINGS, TTL_TOP_STATS, TTL_PLAYER, TTL_TEAM
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -57,11 +58,18 @@ def get_league_page(league_key, season=None):
     season: '2024/2025' hoặc None (mặc định mùa hiện tại)
     Returns: dict pageProps
     """
+    cache_key = f"league:{league_key}:{season or 'current'}"
+    cached = get_cached(cache_key)
+    if cached:
+        return cached
     league = LEAGUES[league_key]
     url = f"{BASE_URL}/leagues/{league['id']}/overview/{league['slug']}"
     if season:
         url += f"?season={season}"
-    return _fetch_page(url)
+    data = _fetch_page(url)
+    if data:
+        set_cached(cache_key, data, TTL_LEAGUE_PAGE)
+    return data
 
 
 def get_available_seasons(league_key):
@@ -120,6 +128,10 @@ def _fetch_stat(league_key, stat_type, season=None, limit=20):
     stat_type: 'goals', 'goal_assist', 'goals_assists', 'rating', ...
     Returns: list of player dicts
     """
+    cache_key = f"stat:{league_key}:{stat_type}:{season or 'current'}:{limit}"
+    cached = get_cached(cache_key)
+    if cached:
+        return cached
     league = LEAGUES[league_key]
     tournament_id, template_id = _get_tournament_id(league_key, season)
     if not tournament_id:
@@ -130,7 +142,10 @@ def _fetch_stat(league_key, stat_type, season=None, limit=20):
     if not top_lists:
         return []
     players = top_lists[0].get("StatList", [])
-    return players[:limit] if limit else players
+    result = players[:limit] if limit else players
+    if result:
+        set_cached(cache_key, result, TTL_TOP_STATS)
+    return result
 
 
 def get_top_scorers(league_key, season=None, limit=20):
@@ -205,11 +220,18 @@ def get_player_info(player_id):
         playerInformation, trophies, careerHistory, statSeasons,
         firstSeasonStats, marketValues, ...
     """
+    cache_key = f"player:{player_id}"
+    cached = get_cached(cache_key)
+    if cached:
+        return cached
     url = f"{BASE_URL}/players/{player_id}/overview"
     data = _fetch_page(url)
     if not data:
         return None
-    return data.get("data")
+    result = data.get("data")
+    if result:
+        set_cached(cache_key, result, TTL_PLAYER)
+    return result
 
 
 def get_player_career(player_id):
@@ -246,16 +268,23 @@ def get_team_info(team_id):
     Returns: dict với keys:
         details, overview, squad, stats, table, transfers, ...
     """
+    cache_key = f"team:{team_id}"
+    cached = get_cached(cache_key)
+    if cached:
+        return cached
     url = f"{BASE_URL}/teams/{team_id}/squad"
     data = _fetch_page(url)
     if not data:
         return None
-    # Data nằm trong fallback
     fallback = data.get("fallback", {})
+    result = None
     for key, val in fallback.items():
         if key.startswith("team-"):
-            return val
-    return None
+            result = val
+            break
+    if result:
+        set_cached(cache_key, result, TTL_TEAM)
+    return result
 
 
 def get_team_details(team_id):
@@ -329,139 +358,3 @@ def get_country_flag_url(ccode):
     """URL cờ quốc gia (ccode phải viết thường)."""
     return f"https://images.fotmob.com/image_resources/logo/teamlogo/{ccode.lower()}.png"
 
-
-# ============================================================
-# =============== TRANSFERMARKT TROPHIES =====================
-# ============================================================
-
-_TM_BASE = "https://www.transfermarkt.com"
-_TM_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Referer": "https://www.transfermarkt.com/",
-}
-
-
-def _load_tm_cookies():
-    """Load TM cookies từ file nếu có."""
-    import os
-    cookie_file = os.path.join(os.path.dirname(__file__), "tm_cookies.json")
-    if not os.path.exists(cookie_file):
-        return {}
-    try:
-        with open(cookie_file) as f:
-            data = json.load(f)
-        return {c["name"]: c["value"] for c in data}
-    except Exception:
-        return {}
-
-
-def _tm_get(url):
-    """GET request tới Transfermarkt với cookies fallback."""
-    cookies = _load_tm_cookies()
-    r = requests.get(url, headers=_TM_HEADERS, cookies=cookies, timeout=15)
-    r.raise_for_status()
-    return r
-
-_INDIVIDUAL_KEYWORDS = [
-    "best player", "golden boot", "golden ball", "golden glove",
-    "footballer of the year", "player of the year", "player of the season",
-    "top goal scorer", "top scorer", "top assist",
-    "ballon d'or", "the best", "pfa", "mvp",
-    "striker of the year", "goalkeeper of the year", "defender of the year",
-    "young player", "best young", "golden boy",
-    "tm-player", "rating", "puskas",
-]
-
-_PARTICIPATION_KEYWORDS = [
-    "participant", "runner-up", "relegated",
-]
-
-
-def _classify_trophy(title):
-    """Phân loại danh hiệu: individual / team / participation."""
-    t = title.lower()
-    for kw in _PARTICIPATION_KEYWORDS:
-        if kw in t:
-            return "participation"
-    for kw in _INDIVIDUAL_KEYWORDS:
-        if kw in t:
-            return "individual"
-    return "team"
-
-
-def _search_tm_player(player_name):
-    """Search Transfermarkt để lấy player slug + ID."""
-    url = f"{_TM_BASE}/schnellsuche/ergebnis/schnellsuche?query={player_name.replace(' ', '+')}"
-    try:
-        r = _tm_get(url)
-    except Exception:
-        return None
-    soup = BeautifulSoup(r.text, "html.parser")
-    table = soup.find("table", class_="items")
-    if not table:
-        return None
-    row = table.find("tr", class_=["odd", "even"])
-    if not row:
-        return None
-    a = row.find("td", class_="hauptlink")
-    if a:
-        a = a.find("a")
-    if not a:
-        return None
-    href = a["href"]  # /erling-haaland/profil/spieler/418560
-    parts = href.split("/")
-    return {"slug": parts[1], "id": parts[-1]}
-
-
-def get_tm_trophies(player_name):
-    """
-    Scrape danh hiệu từ Transfermarkt, phân loại cá nhân / tập thể.
-    Returns: {"individual": [...], "team": [...], "participation": [...]}
-    Mỗi item: {"title": str, "entries": [{"season": str, "detail": str}]}
-    """
-    info = _search_tm_player(player_name)
-    if not info:
-        return None
-    url = f"{_TM_BASE}/{info['slug']}/erfolge/spieler/{info['id']}"
-    try:
-        r = _tm_get(url)
-    except Exception:
-        return None
-    soup = BeautifulSoup(r.text, "html.parser")
-
-    main_col = soup.find("div", class_="large-8")
-    if not main_col:
-        return None
-
-    result = {"individual": [], "team": [], "participation": []}
-    for box in main_col.find_all("div", class_="box"):
-        h2 = box.find("h2")
-        if not h2:
-            continue
-        title = h2.get_text(strip=True)
-        category = _classify_trophy(title)
-        # Trophy image (first img in box, usually the cup/medal)
-        first_img = box.find("img")
-        trophy_img = first_img["src"] if first_img else ""
-        entries = []
-        table = box.find("table")
-        if table:
-            for row in table.find_all("tr"):
-                tds = row.find_all("td")
-                if not tds:
-                    continue
-                season = tds[0].get_text(strip=True)
-                # TD[1] = team/league logo, TD[2] = team/league name
-                team_img = ""
-                team_name = ""
-                if len(tds) > 1:
-                    img = tds[1].find("img")
-                    if img:
-                        team_img = img.get("src", "")
-                if len(tds) > 2:
-                    team_name = tds[2].get_text(strip=True)
-                entries.append({"season": season, "detail": team_name, "team_img": team_img})
-        result[category].append({"title": title, "trophy_img": trophy_img, "entries": entries})
-    return result
