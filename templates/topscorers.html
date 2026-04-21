@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ league_name }} - Top Scorers{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header glass">
+        <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/dark/{{ league_id }}.png" alt="">
+        <div>
+            <div class="title">{{ league_name }}</div>
+            <div class="subtitle">{{ current_season }} — Top Scorers</div>
+        </div>
+    </div>
+    <div class="table-card glass">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:40px">#</th>
+                    <th>Player</th>
+                    <th>Team</th>
+                    <th>Goals(P)</th>
+                    <th>Played</th>
+                    <th>Mins</th>
+                    <th>Mins/G</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in players %}
+                <tr>
+                    <td>{{ p.Rank }}</td>
+                    <td>
+                        <a href="{{ url_for('fm_player', player_id=p.ParticiantId) }}" class="player-cell">
+                            <img src="https://images.fotmob.com/image_resources/playerimages/{{ p.ParticiantId }}.png" alt="">
+                            <span>{{ p.ParticipantName }}</span>
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('fm_team', team_id=p.TeamId) }}" class="team-cell">
+                            <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ p.TeamId }}.png" alt="">
+                            <span>{{ p.TeamName }}</span>
+                        </a>
+                    </td>
+                    <td class="stat-bold">{{ p.StatValue|int }}{% if p.SubStatValue|int > 0 %} <span style="color:var(--text-muted);">({{ p.SubStatValue|int }})</span>{% endif %}</td>
+                    <td>{{ p.MatchesPlayed }}</td>
+                    <td>{{ p.MinutesPlayed }}</td>
+                    <td style="color:var(--text-secondary);">{{ (p.MinutesPlayed / p.StatValue)|round(0)|int if p.StatValue else '-' }}'</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

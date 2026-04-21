@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Review — {{ player.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="page-header glass">
+        <img src="https://images.fotmob.com/image_resources/playerimages/{{ player.fotmob_id }}.png"
+             onerror="this.src='https://images.fotmob.com/image_resources/playerimages/0.png'" alt="">
+        <div>
+            <div class="title">{{ player.name }}</div>
+            <div class="subtitle">
+                FotMob #{{ player.fotmob_id }} · Source: {{ player.source }}
+                <span class="verified-badge {{ 'verified' if player.verified else 'unverified' }}" style="margin-left:8px">
+                    <i class="fas {{ 'fa-check-circle' if player.verified else 'fa-circle-xmark' }}"></i>
+                    {{ 'Verified' if player.verified else 'Unverified' }}
+                </span>
+            </div>
+        </div>
+        <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+            <a href="{{ url_for('fm_admin_honours') }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
+            <form method="POST" action="{{ url_for('fm_admin_toggle_verified', fotmob_id=player.fotmob_id) }}" style="display:inline">
+                <button type="submit" class="btn {{ 'btn-outline' if player.verified else 'btn-primary' }} btn-sm">
+                    <i class="fas {{ 'fa-times' if player.verified else 'fa-check' }}"></i>
+                    {{ 'Unverify' if player.verified else 'Mark Verified' }}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if msg %}
+    <div class="admin-msg {{ 'msg-ok' if msg_ok else 'msg-err' }}" style="margin-bottom:20px">{{ msg }}</div>
+    {% endif %}
+
+    <!-- SUMMARY -->
+    <div class="stats-row" style="margin-bottom:24px">
+        {% for cat, count in summary.items() %}
+        {% if cat != 'total' %}
+        <div class="stat-box glass">
+            <div class="value">{{ count }}</div>
+            <div class="label">{{ cat_labels.get(cat, cat) }}</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        <div class="stat-box glass" style="border-color:var(--accent)">
+            <div class="value" style="color:var(--yellow)">{{ summary.total }}</div>
+            <div class="label">Total</div>
+        </div>
+    </div>
+
+    <!-- HONOURS BY CATEGORY -->
+    {% for cat, entries in honours.items() %}
+    <div class="glass admin-section" style="padding:20px; margin-bottom:16px;">
+        <div class="section-title">
+            <i class="fas {{ cat_icons.get(cat, 'fa-trophy') }}"></i>
+            {{ cat_labels.get(cat, cat) }}
+            <span class="cat-count">{{ entries|sum(attribute='count') }}</span>
+        </div>
+
+        <form method="POST" action="{{ url_for('fm_admin_update_category', fotmob_id=player.fotmob_id, category=cat) }}">
+            <table class="admin-table admin-edit-table">
+                <thead>
+                    <tr>
+                        <th style="width:30px"></th>
+                        <th>Danh hiệu</th>
+                        <th>CLB / Đội</th>
+                        <th>Năm</th>
+                        <th style="width:50px">SL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in entries %}
+                    <tr>
+                        <td>
+                            <button type="button" class="btn-icon btn-delete-row" title="Xóa dòng này" onclick="this.closest('tr').remove()">
+                                <i class="fas fa-trash-can"></i>
+                            </button>
+                        </td>
+                        <td><input type="text" name="trophy" value="{{ e.trophy }}" class="admin-input"></td>
+                        <td><input type="text" name="context" value="{{ e.club or e.team or '' }}" class="admin-input admin-input-sm"></td>
+                        <td><input type="text" name="years" value="{{ e.years|join(', ') }}" class="admin-input"></td>
+                        <td><input type="number" name="count" value="{{ e.count }}" class="admin-input admin-input-xs" min="0"></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div style="display:flex; gap:8px; margin-top:12px;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="addRow(this)">
+                    <i class="fas fa-plus"></i> Thêm dòng
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-save"></i> Lưu {{ cat_labels.get(cat, cat) }}
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endfor %}
+
+    <!-- ADD NEW CATEGORY -->
+    <div class="glass admin-section" style="padding:20px; margin-bottom:24px;">
+        <div class="section-title"><i class="fas fa-folder-plus"></i> Thêm category mới</div>
+        <form method="POST" action="{{ url_for('fm_admin_add_category', fotmob_id=player.fotmob_id) }}" class="seed-form">
+            <select name="category" class="admin-input" style="width:auto">
+                {% for key, label in all_cats.items() %}
+                {% if key not in honours %}
+                <option value="{{ key }}">{{ label }}</option>
+                {% endif %}
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-outline btn-sm"><i class="fas fa-plus"></i> Thêm</button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+function addRow(btn) {
+    const tbody = btn.closest('.admin-section').querySelector('tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td><button type="button" class="btn-icon btn-delete-row" title="Xóa" onclick="this.closest('tr').remove()"><i class="fas fa-trash-can"></i></button></td>
+        <td><input type="text" name="trophy" value="" class="admin-input" placeholder="Tên danh hiệu"></td>
+        <td><input type="text" name="context" value="" class="admin-input admin-input-sm" placeholder="CLB/Đội"></td>
+        <td><input type="text" name="years" value="" class="admin-input" placeholder="2020, 2021"></td>
+        <td><input type="number" name="count" value="0" class="admin-input admin-input-xs" min="0"></td>
+    `;
+    tbody.appendChild(tr);
+    tr.querySelector('input').focus();
+}
+</script>
+{% endblock %}

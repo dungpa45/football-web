@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% block title %}{{ details.name }} - Team{% endblock %}
+{% block content %}
+<div class="container">
+    <!-- Team Header -->
+    <div class="glass" style="padding: 28px; margin-bottom: 24px;">
+        <div class="team-header">
+            <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ details.id }}.png" alt="">
+            <div>
+                <div class="name">{{ details.name }}</div>
+                <div class="country">{{ details.country }} · {{ details.latestSeason }}</div>
+            </div>
+        </div>
+        {% if venue %}
+        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+            <div class="venue-card" style="flex:1; min-width:280px;">
+                <i class="fas fa-map-marker-alt" style="font-size:1.3em; color:var(--accent-light);"></i>
+                <div>
+                    <div class="venue-name">
+                        {% if venue.widget.location %}
+                        <a href="https://www.google.com/maps?q={{ venue.widget.location[0] }},{{ venue.widget.location[1] }}" target="_blank" style="color:var(--text-primary);">
+                            {{ venue.widget.name }} <i class="fas fa-external-link-alt" style="font-size:0.7em; color:var(--accent-light);"></i>
+                        </a>
+                        {% else %}
+                        {{ venue.widget.name }}
+                        {% endif %}
+                    </div>
+                    <div class="venue-meta">
+                        {{ venue.widget.city }}
+                        {% for pair in venue.statPairs %} · {{ pair[0] }}: {{ pair[1] }}{% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex; gap:16px; align-items:center;">
+                <div class="stat-box" style="min-width:90px;">
+                    <div class="value">{{ squad_size }}</div>
+                    <div class="label">Squad</div>
+                </div>
+                <div class="stat-box" style="min-width:90px;">
+                    <div class="value">{{ avg_age }}</div>
+                    <div class="label">Avg Age</div>
+                </div>
+                <div class="stat-box" style="min-width:90px;">
+                    <div class="value">€{{ team_value }}M</div>
+                    <div class="label">Team Value</div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Tabs -->
+        <div class="team-tabs" style="margin-top: 20px;">
+            <button class="tab-btn active" onclick="switchTab('overview')">
+                <i class="fas fa-info-circle"></i> Overview
+            </button>
+            <button class="tab-btn" onclick="switchTab('squad')">
+                <i class="fas fa-users"></i> Squad
+            </button>
+            <button class="tab-btn" onclick="switchTab('history')">
+                <i class="fas fa-trophy"></i> History
+            </button>
+        </div>
+    </div>
+
+    <!-- TAB: Overview -->
+    <div id="tab-overview" class="tab-content">
+        <div class="profile-grid">
+            <!-- Left: Coach + League Position + Matches -->
+            <div>
+                {% if coach %}
+                <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                    <div class="section-title"><i class="fas fa-user-tie"></i> Head Coach</div>
+                    <a href="{{ url_for('fm_coach', coach_id=coach.id) }}" style="display:flex; align-items:center; gap:16px; text-decoration:none;">
+                        <img src="https://images.fotmob.com/image_resources/playerimages/{{ coach.id }}.png" alt=""
+                             style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid var(--accent);"
+                             onerror="this.src='https://images.fotmob.com/image_resources/playerimages/default.png';">
+                        <div>
+                            <div style="font-size:1.2em; font-weight:600; color:var(--text-primary);">{{ coach.name }}</div>
+                            <div style="color:var(--text-secondary); font-size:0.9em;">
+                                {{ coach.cname }} · Age {{ coach.age }}
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endif %}
+
+                {% if league_pos %}
+                <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                    <div class="section-title">
+                        <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/dark/{{ league_id_pos }}.png"
+                             alt="" style="width:22px; height:22px; object-fit:contain;"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                        <i class="fas fa-list-ol" style="display:none;"></i>
+                        {{ league_name_pos }}
+                    </div>
+                    <div style="display:flex; align-items:center; gap:20px;">
+                        <div class="stat-box" style="min-width:80px;">
+                            <div class="value">{{ league_pos.idx }}</div>
+                            <div class="label">Position</div>
+                        </div>
+                        <table class="info-table" style="flex:1;">
+                            <tr><td>Played</td><td>{{ league_pos.played }}</td></tr>
+                            <tr><td>W / D / L</td><td>{{ league_pos.wins }} / {{ league_pos.draws }} / {{ league_pos.losses }}</td></tr>
+                            <tr><td>GF - GA</td><td>{{ league_pos.scoresStr }}</td></tr>
+                            <tr><td>Points</td><td style="font-weight:700; color:var(--accent-light);">{{ league_pos.pts }}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Next & Last Match -->
+                <div class="glass" style="padding: 20px;">
+                    <div class="section-title"><i class="fas fa-calendar-alt"></i> Fixtures</div>
+                    {% if last_match %}
+                    <div class="match-card">
+                        <span class="match-label">Last</span>
+                        <div class="match-teams">
+                            <span class="match-team {% if last_match.home.id == details.id %}match-team-bold{% endif %}">{{ last_match.home.name }}</span>
+                            <span class="match-score">{{ last_match.status.scoreStr or 'vs' }}</span>
+                            <span class="match-team {% if last_match.away.id == details.id %}match-team-bold{% endif %}">{{ last_match.away.name }}</span>
+                        </div>
+                        <span class="match-meta">{{ last_match.tournament.name }} · {{ last_match.status.reason.short if last_match.status.reason else '' }}</span>
+                    </div>
+                    {% endif %}
+                    {% if next_match %}
+                    <div class="match-card">
+                        <span class="match-label next">Next</span>
+                        <div class="match-teams">
+                            <span class="match-team {% if next_match.home.id == details.id %}match-team-bold{% endif %}">{{ next_match.home.name }}</span>
+                            <span class="match-score">vs</span>
+                            <span class="match-team {% if next_match.away.id == details.id %}match-team-bold{% endif %}">{{ next_match.away.name }}</span>
+                        </div>
+                        <span class="match-meta">{{ next_match.tournament.name }} · {{ next_match.status.utcTime[:10] if next_match.status else '' }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Right: Trophy Cabinet (compact) -->
+            <div>
+                {% if trophy_list %}
+                <div class="glass" style="padding: 20px;">
+                    <div class="section-title"><i class="fas fa-trophy"></i> Trophy Cabinet <span style="margin-left:6px; font-size:0.7em; color:var(--text-muted);">{{ total_trophies }} titles</span></div>
+                    <div class="trophy-compact-grid">
+                        {% for t in trophy_list %}
+                        <div class="trophy-compact-item">
+                            <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/dark/{{ t.league_id }}.png"
+                                 alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                            <i class="fas fa-trophy" style="display:none; color:var(--yellow); font-size:0.9em;"></i>
+                            <span class="trophy-compact-count">{{ t.won }}×</span>
+                            <span class="trophy-compact-name">{{ t.name }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Top Players - 3 columns -->
+        {% if top_players %}
+        <div class="top-players-grid" style="margin-top: 20px;">
+            {% set sections = [
+                ('byGoals', 'Top Scorers', 'fas fa-futbol', 'Goals'),
+                ('byAssists', 'Top Assists', 'fas fa-hands-helping', 'Assists'),
+                ('byRating', 'Top Rated', 'fas fa-star', 'Rating')
+            ] %}
+            {% for key, title, icon, stat_label in sections %}
+            {% if top_players.get(key) and top_players[key].get('players') %}
+            <div class="glass" style="padding: 20px;">
+                <div class="section-title"><i class="{{ icon }}"></i> {{ title }}</div>
+                <table style="width:100%">
+                    <thead>
+                        <tr><th style="width:24px">#</th><th>Player</th><th>{{ stat_label }}</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for p in top_players[key]['players'] %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <a href="{{ url_for('fm_player', player_id=p.id) }}" class="player-cell">
+                                    <img src="https://images.fotmob.com/image_resources/playerimages/{{ p.id }}.png" alt="">
+                                    <span>{{ p.name }}</span>
+                                </a>
+                            </td>
+                            <td class="stat-bold">{{ p.value }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Coach History - Toggle (show first 2) -->
+        {% if coach_history %}
+        <div class="glass" style="padding: 20px; margin-top: 20px;">
+            <div class="section-title toggle-header" onclick="toggleCoachHistory()" style="cursor:pointer; user-select:none;">
+                <i class="fas fa-history"></i> Coach History
+                <i class="fas fa-chevron-down toggle-icon" style="margin-left:auto; font-size:0.7em; transition:transform 0.25s;"></i>
+            </div>
+            <table style="width:100%">
+                <thead>
+                    <tr><th>Coach</th><th>Period</th><th>P</th><th>W</th><th>D</th><th>L</th><th>PPG</th><th>Win%</th></tr>
+                </thead>
+                <tbody>
+                    {% for c in coach_history[:2] %}
+                    <tr>
+                        <td style="font-weight:500;">{{ c.name }}</td>
+                        <td style="font-size:0.82em; color:var(--text-secondary)">{{ c.period }}</td>
+                        <td>{{ c.total }}</td>
+                        <td>{{ c.win }}</td>
+                        <td>{{ c.draw }}</td>
+                        <td>{{ c.loss }}</td>
+                        <td>{{ c.ppg }}</td>
+                        <td>{{ c.win_pct }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if coach_history|length > 2 %}
+                <tbody id="coach-history-more" style="display:none;">
+                    {% for c in coach_history[2:] %}
+                    <tr>
+                        <td style="font-weight:500;">{{ c.name }}</td>
+                        <td style="font-size:0.82em; color:var(--text-secondary)">{{ c.period }}</td>
+                        <td>{{ c.total }}</td>
+                        <td>{{ c.win }}</td>
+                        <td>{{ c.draw }}</td>
+                        <td>{{ c.loss }}</td>
+                        <td>{{ c.ppg }}</td>
+                        <td>{{ c.win_pct }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% endif %}
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- TAB: Squad -->
+    <div id="tab-squad" class="tab-content" style="display:none;">
+        <div class="glass" style="padding: 20px;">
+            {% for group in squad %}
+            {% if group.title != 'coach' %}
+            <div class="squad-group">
+                <div class="squad-group-title">{{ group.title }} ({{ group.members|length }})</div>
+                <table style="width:100%">
+                    <thead>
+                        <tr>
+                            <th style="width:30px">#</th>
+                            <th>Name</th>
+                            <th>Country</th>
+                            <th>Age</th>
+                            <th>Height</th>
+                            <th>Pos</th>
+                            <th>Rating</th>
+                            <th>G</th>
+                            <th>A</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in group.members %}
+                        <tr>
+                            <td>{{ m.shirtNumber or '-' }}</td>
+                            <td>
+                                <a href="{{ url_for('fm_player', player_id=m.id) }}" class="player-cell">
+                                    <img src="https://images.fotmob.com/image_resources/playerimages/{{ m.id }}.png" alt="">
+                                    <span>{{ m.name }}</span>
+                                </a>
+                            </td>
+                            <td>
+                                <span class="player-cell" style="gap:6px;">
+                                    <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ m.ccode|lower }}.png" alt="" style="width:18px; height:14px; border-radius:2px;">
+                                    <span style="font-size:0.82em; color:var(--text-secondary)">{{ m.ccode }}</span>
+                                </span>
+                            </td>
+                            <td>{{ m.age }}</td>
+                            <td style="font-size:0.85em;">{{ m.height|default('-', true) }}{% if m.height %} cm{% endif %}</td>
+                            <td style="font-size:0.8em; color:var(--text-secondary)">{{ m.positionIdsDesc or '' }}</td>
+                            <td>{% if m.rating %}<span style="color:var(--accent-light); font-weight:600;">{{ m.rating }}</span>{% else %}-{% endif %}</td>
+                            <td>{{ m.goals or 0 }}</td>
+                            <td>{{ m.assists or 0 }}</td>
+                            <td style="font-size:0.82em;">{% if m.transferValue %}€{{ (m.transferValue / 1000000)|round(1) }}M{% else %}-{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- TAB: History -->
+    <div id="tab-history" class="tab-content" style="display:none;">
+        {% if trophy_list %}
+        <div class="glass" style="padding: 20px;">
+            <div class="section-title">
+                <i class="fas fa-trophy"></i> Honours
+                <span style="margin-left:auto; font-size:0.75em; color:var(--text-muted); font-weight:400;">
+                    {{ total_trophies }} titles
+                </span>
+            </div>
+            {% for t in trophy_list %}
+            {% set hl = '' %}
+            {% if 'Champions League' in t.name %}{% set hl = 'trophy-highlight-ucl' %}
+            {% elif t.name == 'World Cup' %}{% set hl = 'trophy-highlight-wc' %}
+            {% elif t.name == 'EURO' or t.name == 'European Championship' %}{% set hl = 'trophy-highlight-euro' %}
+            {% elif t.name in ['Premier League','LaLiga','La Liga','Serie A','Bundesliga','Ligue 1'] %}{% set hl = 'trophy-highlight-league' %}
+            {% endif %}
+            <div class="trophy-history-item {{ hl }}">
+                <div class="trophy-history-header">
+                    <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/dark/{{ t.league_id }}.png"
+                         alt="" style="width:28px; height:28px; object-fit:contain;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                    <i class="fas fa-trophy" style="display:none; color:var(--yellow); font-size:1.1em;"></i>
+                    <span class="trophy-history-name">{{ t.name }}</span>
+                    <span class="trophy-history-count">{{ t.won }}×</span>
+                    <span class="trophy-history-area">{{ t.area }}</span>
+                </div>
+                <div class="trophy-history-seasons">
+                    {% for s in t.seasons_won %}
+                    <span class="trophy-season-tag">{{ s }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="glass" style="padding: 40px; text-align:center; color:var(--text-muted);">
+            No trophies found
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).style.display = 'block';
+    event.target.closest('.tab-btn').classList.add('active');
+}
+function toggleCoachHistory() {
+    const more = document.getElementById('coach-history-more');
+    const icon = document.querySelector('.toggle-icon');
+    if (!more) return;
+    if (more.style.display === 'none') {
+        more.style.display = 'table-row-group';
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        more.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+</script>
+{% endblock %}

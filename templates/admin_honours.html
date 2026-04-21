@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Admin — Honours Manager{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="page-header glass">
+        <i class="fas fa-shield-halved" style="font-size:2.2em; color:var(--accent-light)"></i>
+        <div>
+            <div class="title">Honours Manager</div>
+            <div class="subtitle">Seed từ Wikipedia · Review · Edit danh hiệu cầu thủ</div>
+        </div>
+    </div>
+
+    <!-- SEED FORM -->
+    <div class="glass admin-section" style="margin-bottom:24px; padding:24px;">
+        <div class="section-title"><i class="fab fa-wikipedia-w"></i> Seed từ Wikipedia</div>
+        <form method="POST" action="{{ url_for('fm_admin_seed') }}" class="seed-form">
+            <input type="number" name="fotmob_id" placeholder="FotMob ID" required>
+            <input type="text" name="player_name" placeholder="Tên cầu thủ" required>
+            <input type="text" name="wiki_page" placeholder="Wikipedia page (vd: Lionel_Messi)" required>
+            <label class="admin-checkbox"><input type="checkbox" name="force"> Force overwrite</label>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-download"></i> Seed</button>
+        </form>
+        {% if seed_msg %}
+        <div class="admin-msg {{ 'msg-ok' if seed_ok else 'msg-err' }}">{{ seed_msg }}</div>
+        {% endif %}
+    </div>
+
+    <!-- PLAYER LIST -->
+    <div class="glass admin-section" style="padding:24px;">
+        <div class="section-title"><i class="fas fa-users"></i> Players trong DB ({{ players|length }})</div>
+        {% if players %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>FotMob ID</th>
+                    <th>Tên</th>
+                    <th>Source</th>
+                    <th>Tổng</th>
+                    <th>Verified</th>
+                    <th>Updated</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in players %}
+                <tr>
+                    <td><code>{{ p.fotmob_id }}</code></td>
+                    <td><a href="{{ url_for('fm_admin_detail', fotmob_id=p.fotmob_id) }}">{{ p.name }}</a></td>
+                    <td class="text-muted">{{ p.source|truncate(30) }}</td>
+                    <td class="stat-bold">{{ p.total }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('fm_admin_toggle_verified', fotmob_id=p.fotmob_id) }}" style="display:inline">
+                            <button type="submit" class="verified-badge {{ 'verified' if p.verified else 'unverified' }}">
+                                <i class="fas {{ 'fa-check-circle' if p.verified else 'fa-circle-xmark' }}"></i>
+                                {{ 'Yes' if p.verified else 'No' }}
+                            </button>
+                        </form>
+                    </td>
+                    <td class="text-muted" style="font-size:0.8em">{{ p.updated_at.strftime('%d/%m/%Y %H:%M') if p.updated_at else '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('fm_admin_detail', fotmob_id=p.fotmob_id) }}" class="btn btn-outline btn-sm">
+                            <i class="fas fa-eye"></i> Review
+                        </a>
+                        <form method="POST" action="{{ url_for('fm_admin_delete', fotmob_id=p.fotmob_id) }}" style="display:inline" onsubmit="return confirm('Xóa {{ p.name }}?')">
+                            <button type="submit" class="btn btn-sm" style="background:rgba(248,113,113,0.15);color:var(--red);border:1px solid rgba(248,113,113,0.3)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted" style="padding:20px 0">Chưa có player nào. Seed từ Wikipedia ở trên.</p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

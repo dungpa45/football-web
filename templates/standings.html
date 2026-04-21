@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}{{ league_name }} - Standings{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header glass">
+        <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/dark/{{ league_id }}.png" alt="">
+        <div>
+            <div class="title">{{ league_name }}</div>
+            <div class="subtitle">{{ current_season }} — Standings</div>
+        </div>
+    </div>
+    <div class="table-card glass">
+        {# Build color→title lookup from legend #}
+        {% set color_map = {} %}
+        {% for item in legend %}
+            {% set _ = color_map.update({item.color: item.title}) %}
+        {% endfor %}
+
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:40px">#</th>
+                    <th>Team</th>
+                    <th>P</th>
+                    <th>W</th>
+                    <th>D</th>
+                    <th>L</th>
+                    <th>GF-GA</th>
+                    <th>GD</th>
+                    <th>Pts</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in standings %}
+                <tr>
+                    <td>
+                        {% if team.qualColor %}
+                        <span class="rank-qual" style="color:{{ team.qualColor }}; font-weight:700;" title="{{ color_map.get(team.qualColor, '') }}">{{ team.idx }}</span>
+                        {% else %}
+                        {{ team.idx }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('fm_team', team_id=team.id) }}" class="team-cell">
+                            <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ team.id }}.png" alt="">
+                            <span>{{ team.name }}</span>
+                        </a>
+                    </td>
+                    <td>{{ team.played }}</td>
+                    <td>{{ team.wins }}</td>
+                    <td>{{ team.draws }}</td>
+                    <td>{{ team.losses }}</td>
+                    <td>{{ team.scoresStr }}</td>
+                    <td>{% if team.goalConDiff > 0 %}+{% endif %}{{ team.goalConDiff }}</td>
+                    <td class="pts-bold">{{ team.pts }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if legend %}
+        <div class="standings-legend">
+            {% for item in legend %}
+            <span class="legend-item">
+                <span class="legend-dot" style="background:{{ item.color }};"></span>
+                {{ item.title }}
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

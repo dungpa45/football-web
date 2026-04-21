@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}{{ player.name }} - Coach{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="profile-grid">
+        <!-- Left: Profile + Stats -->
+        <div>
+            <div class="profile-card glass">
+                <div class="profile-header">
+                    <img src="https://images.fotmob.com/image_resources/playerimages/{{ player.id }}.png" alt=""
+                         onerror="this.src='https://images.fotmob.com/image_resources/playerimages/default.png';">
+                    <div>
+                        <div class="name">{{ player.name }}</div>
+                        <div class="meta">
+                            Coach
+                            {% if player.primaryTeam %}· {{ player.primaryTeam.teamName }}{% endif %}
+                        </div>
+                    </div>
+                </div>
+                <table class="info-table player-info-table">
+                    {% for info in info_list %}
+                    <tr>
+                        <td>{{ info.label }}</td>
+                        <td>{{ info.value }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if player.birthDate %}
+                    <tr>
+                        <td>Born</td>
+                        <td>{{ player.birthDate.utcTime[:10] }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+                {% if player.primaryTeam %}
+                <div style="margin-top: 16px;">
+                    <a href="{{ url_for('fm_team', team_id=player.primaryTeam.teamId) }}" class="btn btn-outline" style="display:inline-block; font-size:0.85em;">
+                        <i class="fas fa-shield-alt"></i> View Team
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Career Overview Stats -->
+            {% if career_totals %}
+            <div class="glass" style="padding: 20px; margin-top: 20px;">
+                <div class="section-title"><i class="fas fa-chart-pie"></i> Career Overview</div>
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="value">{{ career_totals.matches }}</div>
+                        <div class="label">Matches</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value">{{ career_totals.wins }}</div>
+                        <div class="label">Wins</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value">{{ career_totals.win_pct }}%</div>
+                        <div class="label">Win Rate</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value">{{ total_trophies }}</div>
+                        <div class="label">Trophies</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="value">{{ career_totals.teams }}</div>
+                        <div class="label">Teams</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Coaching Career + Trophies -->
+        <div>
+            <!-- Coaching Career -->
+            {% if career_entries %}
+            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                <div class="section-title"><i class="fas fa-clipboard-list"></i> Coaching Career</div>
+                <table style="width:100%">
+                    <thead>
+                        <tr><th>Team</th><th>Role</th><th>Period</th><th>M</th><th>W</th><th>D</th><th>L</th><th>Win%</th><th>PPG</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for e in career_entries %}
+                        <tr{% if e.is_assistant %} style="opacity:0.6;"{% endif %}>
+                            <td>
+                                <a href="{{ url_for('fm_team', team_id=e.teamId) }}" class="team-cell">
+                                    <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ e.teamId }}.png" alt="">
+                                    <span>{{ e.teamName }}</span>
+                                </a>
+                            </td>
+                            <td style="font-size:0.78em;">
+                                {% if e.is_assistant %}
+                                <span style="color:var(--text-muted);">Assistant</span>
+                                {% else %}
+                                <span style="color:var(--green);">Manager</span>
+                                {% endif %}
+                            </td>
+                            <td style="font-size:0.82em; color:var(--text-secondary)">{{ e.start }} – {{ e.end }}</td>
+                            <td>{{ e.matches or '-' }}</td>
+                            <td>{{ e.wins or '-' }}</td>
+                            <td>{{ e.draws or '-' }}</td>
+                            <td>{{ e.losses or '-' }}</td>
+                            <td>{% if not e.is_assistant %}{{ e.win_pct }}%{% else %}-{% endif %}</td>
+                            <td>{% if not e.is_assistant %}{{ e.ppg }}{% else %}-{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Player Career (only if had appearances) -->
+            {% if player_career %}
+            {% for level, data in player_career.items() %}
+            {% if data.teamEntries %}
+            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                <div class="section-title"><i class="fas fa-running"></i> As Player{% if level != 'senior' %} ({{ level }}){% endif %}</div>
+                <table style="width:100%">
+                    <thead>
+                        <tr><th>Team</th><th>Period</th><th>App</th><th>Goals</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for entry in data.teamEntries %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('fm_team', team_id=entry.teamId) }}" class="team-cell">
+                                    <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ entry.teamId }}.png" alt="">
+                                    <span>{{ entry.team }}</span>
+                                </a>
+                            </td>
+                            <td style="font-size:0.82em; color:var(--text-secondary)">
+                                {{ entry.startDate[:4] if entry.startDate else '?' }} – {{ entry.endDate[:4] if entry.endDate else 'Now' }}
+                            </td>
+                            <td>{{ entry.appearances or '-' }}</td>
+                            <td>{{ entry.goals or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+
+            <!-- Trophies -->
+            {% if trophies %}
+            <div class="glass" style="padding: 20px;">
+                <div class="section-title">
+                    <i class="fas fa-trophy"></i> Trophies
+                    <span style="margin-left:6px; font-size:0.7em; color:var(--text-muted);">{{ total_trophies }} titles</span>
+                </div>
+                {% for t in trophies %}
+                {% set hl = '' %}
+                {% if 'Champions League' in t.league %}{% set hl = 'trophy-highlight-ucl' %}
+                {% elif t.league == 'World Cup' %}{% set hl = 'trophy-highlight-wc' %}
+                {% elif t.league == 'EURO' or t.league == 'European Championship' %}{% set hl = 'trophy-highlight-euro' %}
+                {% elif t.league in ['Premier League','LaLiga','La Liga','Serie A','Bundesliga','Ligue 1'] %}{% set hl = 'trophy-highlight-league' %}
+                {% endif %}
+                <div class="trophy-item {{ hl }}">
+                    <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/dark/{{ t.league_id }}.png"
+                         alt="" style="width:22px; height:22px; object-fit:contain;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                    <i class="fas fa-trophy" style="display:none; color:var(--yellow); font-size:0.9em;"></i>
+                    <div class="detail" style="flex:1;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="league">{{ t.league }}</span>
+                            <span style="font-size:0.75em; color:var(--text-muted);">
+                                <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ t.team_id }}.png"
+                                     alt="" style="width:14px; height:14px; vertical-align:middle;">
+                                {{ t.team }}
+                            </span>
+                        </div>
+                        <div class="season">{{ t.seasons|join(', ') }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

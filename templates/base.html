@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FotMob Stats{% endblock %}</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fotmob.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="{{ url_for('fm_home') }}" class="logo"><i class="fas fa-futbol"></i> FotMob</a>
+        {% if request.endpoint != 'fm_home' %}
+        <button class="nav-toggle" onclick="document.querySelector('.nav-form').classList.toggle('nav-open')" aria-label="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <form class="nav-form" method="GET" action="{{ url_for('fm_standings') }}">
+            <select name="league">
+                {% for key, val in leagues.items() %}
+                <option value="{{ key }}" {% if current_league == key %}selected{% endif %}>{{ val.name }}</option>
+                {% endfor %}
+            </select>
+            <select name="season">
+                {% for s in seasons %}
+                <option value="{{ s }}" {% if current_season == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" formaction="{{ url_for('fm_standings') }}">Standings</button>
+            <button type="submit" formaction="{{ url_for('fm_topscorers') }}">Top Scorers</button>
+            <button type="submit" formaction="{{ url_for('fm_topassists') }}">Top Assists</button>
+            <button type="submit" formaction="{{ url_for('fm_topga') }}">G+A</button>
+        </form>
+        {% endif %}
+    </nav>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

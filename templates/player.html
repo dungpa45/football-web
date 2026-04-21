@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block title %}{{ player.name }} - Profile{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="profile-grid">
+        <!-- Left: Profile -->
+        <div>
+            <div class="profile-card glass">
+                <div class="profile-header">
+                    <img src="https://images.fotmob.com/image_resources/playerimages/{{ player.id }}.png" alt="">
+                    <div>
+                        <div class="name">{{ player.name }}</div>
+                        <div class="player-badges">
+                            {% set pos_key = player.positionDescription.primaryPosition.key|default('') %}
+                            {% if 'keeper' in pos_key %}
+                                {% set pos_color = 'pos-gk' %}
+                            {% elif 'back' in pos_key or 'defender' in pos_key %}
+                                {% set pos_color = 'pos-df' %}
+                            {% elif 'midfielder' in pos_key or 'midfield' in pos_key %}
+                                {% set pos_color = 'pos-mf' %}
+                            {% else %}
+                                {% set pos_color = 'pos-fw' %}
+                            {% endif %}
+                            <span class="player-position {{ pos_color }}">{{ player.positionDescription.primaryPosition.label }}</span>
+                            {% if player.primaryTeam %}
+                            <a href="{{ url_for('fm_team', team_id=player.primaryTeam.teamId) }}" class="player-team-badge">
+                                <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ player.primaryTeam.teamId }}.png" alt="">
+                                <span>{{ player.primaryTeam.teamName }}</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <table class="info-table player-info-table">
+                    {% for info in player_info_list %}
+                    <tr>
+                        <td>{{ info.label }}</td>
+                        <td>{{ info.value }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+
+            <!-- Season Stats per Tournament -->
+            {% if season_stats %}
+            <div class="glass" style="padding: 20px; margin-top: 20px;">
+                <div class="section-title"><i class="fas fa-chart-bar"></i> Current Season</div>
+                <table style="width:100%">
+                    <thead>
+                        <tr><th>Competition</th><th>App</th><th>Goals</th><th>Assists</th><th>Min</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for s in season_stats %}
+                        <tr>
+                            <td>{{ s.league }}</td>
+                            <td>{{ s.matches }}</td>
+                            <td>{{ s.goals }}</td>
+                            <td>{{ s.assists }}</td>
+                            <td>{{ s.minutes }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if season_total %}
+                        <tr style="font-weight:700; border-top:2px solid var(--glass-border);">
+                            <td>{{ season_total.league }}</td>
+                            <td>{{ season_total.matches }}</td>
+                            <td class="stat-bold">{{ season_total.goals }}</td>
+                            <td class="stat-bold">{{ season_total.assists }}</td>
+                            <td>{{ season_total.minutes }}</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            <!-- Career Totals -->
+            {% if career_totals %}
+            <div class="glass" style="padding: 20px; margin-top: 20px;">
+                <div class="section-title"><i class="fas fa-chart-line"></i> Career Totals</div>
+                <div class="stats-row">
+                    {% for s in career_totals %}
+                    <div class="stat-box">
+                        <div class="value">{{ s.value }}</div>
+                        <div class="label">{{ s.label }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {# Individual Awards from Wikipedia DB #}
+            {% if wiki_individual %}
+            <div class="glass" style="padding: 20px; margin-top: 20px;">
+                <div class="section-title"><i class="fas fa-star"></i> Individual Awards</div>
+                {% for award in wiki_individual %}
+                {% set al = award.trophy|lower %}
+                {# Determine icon/style tier #}
+                {% if 'the best fifa' in al or 'fifa world player' in al or 'fifa ballon' in al %}
+                    {% set tier = 'fifabest' %}
+                {% elif "ballon d'or" == al or al == "ballon d'or" %}
+                    {% set tier = 'ballon' %}
+                {% elif 'world cup' in al and ('golden ball' in al) %}
+                    {% set tier = 'wc-ball' %}
+                {% elif 'world cup' in al and ('golden boot' in al) %}
+                    {% set tier = 'wc-boot' %}
+                {% elif 'golden shoe' in al %}
+                    {% set tier = 'goldenshoe' %}
+                {% elif 'champions league' in al %}
+                    {% set tier = 'ucl' %}
+                {% elif 'copa am' in al or 'euro' in al and 'golden' in al %}
+                    {% set tier = 'continental' %}
+                {% elif 'puskás' in al or 'puskas' in al %}
+                    {% set tier = 'puskas' %}
+                {% elif 'golden boy' in al or 'kopa' in al %}
+                    {% set tier = 'youngstar' %}
+                {% elif 'laureus' in al %}
+                    {% set tier = 'laureus' %}
+                {% elif 'player of the year' in al or 'footballer of the year' in al or 'best player' in al or 'player of the season' in al or 'mvp' in al or 'most valuable' in al %}
+                    {% set tier = 'poty' %}
+                {% elif 'pichichi' in al or 'capocannoniere' in al or 'golden boot' in al or 'top scorer' in al or 'top goalscorer' in al %}
+                    {% set tier = 'topscorer' %}
+                {% else %}
+                    {% set tier = 'default' %}
+                {% endif %}
+                <div class="indiv-award indiv-{{ tier }}">
+                    <div class="indiv-icon">
+                        {% if tier == 'ballon' %}
+                            <img src="{{ url_for('static', filename='trophy_icons/ballon_dor.png') }}" alt="">
+                        {% elif tier == 'fifabest' %}
+                            <img src="{{ url_for('static', filename='trophy_icons/fifa_best.png') }}" alt="">
+                        {% elif tier == 'wc-ball' %}
+                            <span class="trophy-emoji">⚽</span>
+                        {% elif tier == 'wc-boot' or tier == 'goldenshoe' or tier == 'topscorer' %}
+                            <span class="trophy-emoji">👟</span>
+                        {% elif tier == 'ucl' %}
+                            <span class="trophy-emoji">⭐</span>
+                        {% elif tier == 'continental' %}
+                            <span class="trophy-emoji">🥇</span>
+                        {% elif tier == 'puskas' %}
+                            <span class="trophy-emoji">🎯</span>
+                        {% elif tier == 'youngstar' %}
+                            <span class="trophy-emoji">💎</span>
+                        {% elif tier == 'laureus' %}
+                            <span class="trophy-emoji">🏅</span>
+                        {% elif tier == 'poty' %}
+                            <span class="trophy-emoji">👑</span>
+                        {% else %}
+                            <span class="trophy-emoji">🏅</span>
+                        {% endif %}
+                    </div>
+                    <div class="indiv-body">
+                        <div class="indiv-name">
+                            {{ award.trophy }}
+                            <span class="indiv-count">×{{ award.count }}</span>
+                        </div>
+                        <div class="indiv-years">
+                            {% for y in award.years %}
+                            <span class="indiv-year-tag">{{ y }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: Career + Trophies -->
+        <div>
+            {# Career History - Club (accordion by team > season > tournament) #}
+            {% if club_by_team %}
+            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                <div class="section-title"><i class="fas fa-futbol"></i> Club Career</div>
+                <table class="career-table" style="width:100%">
+                    <thead>
+                        <tr><th>Team</th><th>App</th><th>G</th><th>A</th><th>Rating</th><th style="width:20px"></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for team in club_by_team %}
+                        <tr class="career-team-row" onclick="this.closest('tbody').querySelectorAll('.ct-{{team.teamId}}.career-season-row').forEach(r=>r.classList.toggle('hidden'))">
+                            <td>
+                                <a href="{{ url_for('fm_team', team_id=team.teamId) }}" class="team-cell" onclick="event.stopPropagation()">
+                                    <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ team.teamId }}.png" alt="">
+                                    <span>{{ team.team }}</span>
+                                </a>
+                                <span class="career-period">{{ team.startDate[:4] }} - {{ team.endDate[:4] if team.endDate else 'Now' }}</span>
+                            </td>
+                            <td>{{ team.appearances }}</td>
+                            <td>{{ team.goals }}</td>
+                            <td>{{ team.assists }}</td>
+                            <td></td>
+                            <td><i class="fas fa-chevron-down career-chevron"></i></td>
+                        </tr>
+                        {% for s in team.seasons %}
+                        {% set sIdx = loop.index %}
+                        <tr class="career-season-row ct-{{team.teamId}} hidden" onclick="event.stopPropagation();this.closest('tbody').querySelectorAll('.cs-{{team.teamId}}-{{sIdx}}').forEach(r=>r.classList.toggle('hidden'))">
+                            <td style="padding-left:36px; font-weight:500;">{{ s.seasonName }}</td>
+                            <td>{{ s.appearances }}</td>
+                            <td>{{ s.goals }}</td>
+                            <td>{{ s.assists }}</td>
+                            <td>{% if s.rating and s.rating.rating %}<span class="career-rating">{{ s.rating.rating }}</span>{% else %}-{% endif %}</td>
+                            <td><i class="fas fa-chevron-down career-chevron"></i></td>
+                        </tr>
+                        {% for ts in s.tournamentStats %}
+                        {% if not ts.isFriendly %}
+                        <tr class="career-tourney-row ct-{{team.teamId}} cs-{{team.teamId}}-{{sIdx}} hidden">
+                            <td style="padding-left:56px; color:var(--text-secondary); font-size:0.85em;">{{ ts.leagueName }}</td>
+                            <td>{{ ts.appearances }}</td>
+                            <td>{{ ts.goals }}</td>
+                            <td>{{ ts.assists if ts.assists != 'undefined' else '-' }}</td>
+                            <td>{% if ts.rating and ts.rating.rating %}<span class="career-rating">{{ ts.rating.rating }}</span>{% else %}-{% endif %}</td>
+                            <td></td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {# Career History - National Team (same accordion format) #}
+            {% if nt_by_team %}
+            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                <div class="section-title"><i class="fas fa-flag"></i> National Team</div>
+                <table class="career-table" style="width:100%">
+                    <thead>
+                        <tr><th>Team</th><th>App</th><th>G</th><th>A</th><th>Rating</th><th style="width:20px"></th></tr>
+                    </thead>
+                    <tbody>
+                        {% for team in nt_by_team %}
+                        <tr class="career-team-row" onclick="this.closest('tbody').querySelectorAll('.nt-{{team.teamId}}.career-season-row').forEach(r=>r.classList.toggle('hidden'))">
+                            <td>
+                                <a href="{{ url_for('fm_team', team_id=team.teamId) }}" class="team-cell" onclick="event.stopPropagation()">
+                                    <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ team.teamId }}.png" alt="">
+                                    <span>{{ team.team }}</span>
+                                </a>
+                                <span class="career-period">{{ team.startDate[:4] }} - {{ team.endDate[:4] if team.endDate else 'Now' }}</span>
+                            </td>
+                            <td>{{ team.appearances }}</td>
+                            <td>{{ team.goals }}</td>
+                            <td>{{ team.assists }}</td>
+                            <td></td>
+                            <td><i class="fas fa-chevron-down career-chevron"></i></td>
+                        </tr>
+                        {% for s in team.seasons %}
+                        {% set sIdx = loop.index %}
+                        <tr class="career-season-row nt-{{team.teamId}} hidden" onclick="event.stopPropagation();this.closest('tbody').querySelectorAll('.ns-{{team.teamId}}-{{sIdx}}').forEach(r=>r.classList.toggle('hidden'))">
+                            <td style="padding-left:36px; font-weight:500;">{{ s.seasonName }}</td>
+                            <td>{{ s.appearances }}</td>
+                            <td>{{ s.goals }}</td>
+                            <td>{{ s.assists }}</td>
+                            <td>{% if s.rating and s.rating.rating %}<span class="career-rating">{{ s.rating.rating }}</span>{% else %}-{% endif %}</td>
+                            <td><i class="fas fa-chevron-down career-chevron"></i></td>
+                        </tr>
+                        {% for ts in s.tournamentStats %}
+                        {% if not ts.isFriendly %}
+                        <tr class="career-tourney-row nt-{{team.teamId}} ns-{{team.teamId}}-{{sIdx}} hidden">
+                            <td style="padding-left:56px; color:var(--text-secondary); font-size:0.85em;">{{ ts.leagueName }}</td>
+                            <td>{{ ts.appearances }}</td>
+                            <td>{{ ts.goals }}</td>
+                            <td>{{ ts.assists if ts.assists != 'undefined' else '-' }}</td>
+                            <td>{% if ts.rating and ts.rating.rating %}<span class="career-rating">{{ ts.rating.rating }}</span>{% else %}-{% endif %}</td>
+                            <td></td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {# Team Trophies from FotMob #}
+            {% if trophies and trophies.playerTrophies %}
+            <div class="glass" style="padding: 20px; margin-bottom: 20px;">
+                <div class="section-title"><i class="fas fa-trophy"></i> Trophies</div>
+                {% for team_trophy in trophies.playerTrophies %}
+                <div style="margin-bottom: 18px;">
+                    <div style="font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:8px; font-size:0.95em;">
+                        <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ team_trophy.teamId }}.png" style="width:26px; height:26px; object-fit:contain;">
+                        {{ team_trophy.teamName }}
+                    </div>
+                    {% for t in team_trophy.tournaments %}
+                    {% if t.seasonsWon %}
+                    {% set hl = '' %}
+                    {% if 'Champions League' in t.leagueName %}{% set hl = 'trophy-highlight-ucl' %}
+                    {% elif t.leagueName == 'World Cup' %}{% set hl = 'trophy-highlight-wc' %}
+                    {% elif t.leagueName == 'EURO' or t.leagueName == 'European Championship' %}{% set hl = 'trophy-highlight-euro' %}
+                    {% elif t.leagueName in ['Premier League','LaLiga','La Liga','Serie A','Bundesliga','Ligue 1'] %}{% set hl = 'trophy-highlight-league' %}
+                    {% endif %}
+                    <div class="trophy-item {{ hl }}" style="gap:10px; margin-bottom:6px; padding:6px 12px;">
+                        {% if t.leagueId and t.leagueId > 0 %}
+                        <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/dark/{{ t.leagueId }}.png"
+                             style="width:22px; height:22px; object-fit:contain; flex-shrink:0;"
+                             onerror="this.style.display='none';this.nextElementSibling.style.display='inline';">
+                        <span class="icon" style="display:none;"><i class="fas fa-trophy"></i></span>
+                        {% else %}
+                        <span class="icon"><i class="fas fa-trophy"></i></span>
+                        {% endif %}
+                        <div class="detail">
+                            <div class="league">
+                                {% if t.seasonsWon|length > 1 %}<strong>{{ t.seasonsWon|length }}x</strong> {% endif %}{{ t.leagueName }}
+                            </div>
+                            <div class="season">{{ t.seasonsWon|join(', ') }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
