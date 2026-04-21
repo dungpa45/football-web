@@ -24,7 +24,7 @@ services:
       ME_CONFIG_BASICAUTH_USERNAME: ${ME_USER:-admin}
       ME_CONFIG_BASICAUTH_PASSWORD: ${ME_PASS:-admin}
 
-  web:
+  app:
     build: .
     restart: unless-stopped
     ports:
@@ -33,6 +33,8 @@ services:
       - mongo
     environment:
       MONGO_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-changeme}@mongo:27017/
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASS: ${ADMIN_PASS:-admin}
 
 networks:
   mongo-compose-network:

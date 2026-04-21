@@ -2,7 +2,9 @@
 FotMob Web App - Modern Glassmorphism UI
 Chạy: python app_fotmob.py
 """
-from flask import Flask, render_template, request, redirect, url_for
+import os
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, Response
 from fotmob import (
     LEAGUES, get_standings, get_top_scorers, get_top_assists, get_top_goals_assists,
     get_available_seasons, get_player_info,
@@ -16,6 +18,19 @@ from honours_db import (
 )
 
 app = Flask(__name__)
+
+ADMIN_USER = os.getenv("ADMIN_USER", "admin")
+ADMIN_PASS = os.getenv("ADMIN_PASS", "admin")
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or auth.username != ADMIN_USER or auth.password != ADMIN_PASS:
+            return Response("Login required", 401, {"WWW-Authenticate": 'Basic realm="Admin"'})
+        return f(*args, **kwargs)
+    return decorated
 
 DEFAULT_SEASONS = ["2025/2026", "2024/2025", "2023/2024", "2022/2023", "2021/2022", "2020/2021", "2019/2020", "2018/2019", "2017/2018", "2016/2017" ]
 
@@ -449,6 +464,7 @@ ALL_CATS = {v: k for k, v in CATEGORY_MAP.items()}
 
 
 @app.route('/admin/honours')
+@admin_required
 def fm_admin_honours():
     ctx = _ctx()
     docs = list(honours_coll.find({}, {'_id': 0}).sort('name', 1))
@@ -462,6 +478,7 @@ def fm_admin_honours():
 
 
 @app.route('/admin/honours/seed', methods=['POST'])
+@admin_required
 def fm_admin_seed():
     fid = int(request.form['fotmob_id'])
     name = request.form['player_name']
@@ -475,6 +492,7 @@ def fm_admin_seed():
 
 
 @app.route('/admin/honours/<int:fotmob_id>')
+@admin_required
 def fm_admin_detail(fotmob_id):
     ctx = _ctx()
     doc = get_player_honours(fotmob_id)
@@ -493,12 +511,14 @@ def fm_admin_detail(fotmob_id):
 
 
 @app.route('/admin/honours/<int:fotmob_id>/delete', methods=['POST'])
+@admin_required
 def fm_admin_delete(fotmob_id):
     honours_coll.delete_one({'fotmob_id': fotmob_id})
     return redirect(url_for('fm_admin_honours', seed_msg=f'🗑 Đã xóa player #{fotmob_id}', seed_ok='1'))
 
 
 @app.route('/admin/honours/<int:fotmob_id>/toggle-verified', methods=['POST'])
+@admin_required
 def fm_admin_toggle_verified(fotmob_id):
     doc = get_player_honours(fotmob_id)
     if doc:
@@ -508,6 +528,7 @@ def fm_admin_toggle_verified(fotmob_id):
 
 
 @app.route('/admin/honours/<int:fotmob_id>/update/<category>', methods=['POST'])
+@admin_required
 def fm_admin_update_category(fotmob_id, category):
     doc = get_player_honours(fotmob_id)
     if not doc:
@@ -549,6 +570,7 @@ def fm_admin_update_category(fotmob_id, category):
 
 
 @app.route('/admin/honours/<int:fotmob_id>/add-category', methods=['POST'])
+@admin_required
 def fm_admin_add_category(fotmob_id):
     doc = get_player_honours(fotmob_id)
     if not doc:
