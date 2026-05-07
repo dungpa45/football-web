@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} - All Leagues{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="page-header glass">
+        <i class="fas fa-globe" style="font-size:2.2em; color:var(--accent-light);"></i>
+        <div>
+            <div class="title">{{ page_title }}</div>
+            <div class="subtitle">{{ page_subtitle }} · {{ current_season }}</div>
+        </div>
+    </div>
+
+    <!-- Tab buttons + Season selector -->
+    <div style="display:flex; gap:8px; margin-bottom:20px; align-items:center; flex-wrap:wrap;">
+        <a href="{{ url_for('fm_all_topscorers', season=current_season) }}" class="tab-btn {% if stat_type == 'goals' %}active{% endif %}">
+            <i class="fas fa-futbol"></i> Top Scorers
+        </a>
+        <a href="{{ url_for('fm_all_topassists', season=current_season) }}" class="tab-btn {% if stat_type == 'assists' %}active{% endif %}">
+            <i class="fas fa-hands-helping"></i> Top Assists
+        </a>
+        <a href="{{ url_for('fm_all_topga', season=current_season) }}" class="tab-btn {% if stat_type == 'ga' %}active{% endif %}">
+            <i class="fas fa-chart-line"></i> G+A
+        </a>
+        <form method="GET" style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+            <select name="season" onchange="this.form.submit()" style="padding:6px 12px; border-radius:8px; background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-primary); font-family:'Inter',sans-serif; font-size:0.85em;">
+                {% for s in seasons %}
+                <option value="{{ s }}" {% if current_season == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <div class="table-card glass">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:35px">#</th>
+                    <th>Player</th>
+                    <th>Team</th>
+                    <th>League</th>
+                    {% if stat_type == 'goals' %}
+                    <th>Goals</th>
+                    <th>Mins/G</th>
+                    {% elif stat_type == 'assists' %}
+                    <th>Assists</th>
+                    <th>Mins/A</th>
+                    {% else %}
+                    <th>G+A</th>
+                    <th>xG</th>
+                    <th>xA</th>
+                    <th>Mins/GA</th>
+                    {% endif %}
+                    <th>Played</th>
+                    <th>Mins</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in players %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <a href="{{ url_for('fm_player', player_id=p.ParticiantId) }}" class="player-cell">
+                            <img src="https://images.fotmob.com/image_resources/playerimages/{{ p.ParticiantId }}.png" alt="">
+                            <span>{{ p.ParticipantName }}</span>
+                        </a>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('fm_team', team_id=p.TeamId) }}" class="team-cell">
+                            <img src="https://images.fotmob.com/image_resources/logo/teamlogo/{{ p.TeamId }}.png" alt="">
+                            <span>{{ p.TeamName }}</span>
+                        </a>
+                    </td>
+                    <td>
+                        <span class="team-cell" style="gap:6px;">
+                            <img src="https://images.fotmob.com/image_resources/logo/leaguelogo/dark/{{ p.league_id }}.png" alt="" style="width:18px; height:18px;">
+                            <span style="font-size:0.82em; color:var(--text-secondary);">{{ p.league_name }}</span>
+                        </span>
+                    </td>
+                    {% if stat_type == 'goals' %}
+                    <td class="stat-bold">{{ p.StatValue|int }}{% if p.SubStatValue|int > 0 %} <span style="color:var(--text-muted);">({{ p.SubStatValue|int }})</span>{% endif %}</td>
+                    <td style="color:var(--text-secondary);">{{ (p.MinutesPlayed / p.StatValue)|round(0)|int if p.StatValue else '-' }}'</td>
+                    {% elif stat_type == 'assists' %}
+                    <td class="stat-bold">{{ p.StatValue|int }}</td>
+                    <td style="color:var(--text-secondary);">{{ (p.MinutesPlayed / p.StatValue)|round(0)|int if p.StatValue else '-' }}'</td>
+                    {% else %}
+                    <td class="stat-bold">{{ p.StatValue|int }} <span style="color:var(--text-muted);">({{ p.Goals }}+{{ p.Assists }})</span></td>
+                    <td style="color:var(--green);">{{ p.xG }}</td>
+                    <td style="color:var(--blue);">{{ p.xA }}</td>
+                    <td style="color:var(--text-secondary);">{{ (p.MinutesPlayed / p.StatValue)|round(0)|int if p.StatValue else '-' }}'</td>
+                    {% endif %}
+                    <td>{{ p.MatchesPlayed }}</td>
+                    <td>{{ p.MinutesPlayed }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

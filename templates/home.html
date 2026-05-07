@@ -36,6 +36,14 @@
                     <i class="fas fa-chart-line"></i> G+A
                 </button>
             </div>
+            <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--glass-border);">
+                <p style="font-size:0.85em; color:var(--text-muted); margin-bottom:12px;">Compare across all 5 leagues</p>
+                <div class="actions">
+                    <button type="submit" class="btn btn-primary" formaction="{{ url_for('fm_all_topscorers') }}" style="background:linear-gradient(135deg, #7c3aed, #2563eb);">
+                        <i class="fas fa-globe"></i> All Leagues
+                    </button>
+                </div>
+            </div>
         </form>
     </div>
 </div>

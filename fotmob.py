@@ -354,6 +354,55 @@ def get_league_image_url(league_id):
     return f"https://images.fotmob.com/image_resources/logo/leaguelogo/{league_id}.png"
 
 
+def get_top_all_leagues(stat_type="goals", season=None, limit_per_league=10):
+    """
+    Lấy top stats từ cả 5 giải, gộp lại và sort.
+    stat_type: 'goals', 'goal_assist'
+    Returns: sorted list of player dicts (thêm league_key, league_name)
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _fetch_league(key):
+        players = _fetch_stat(key, stat_type, season, limit_per_league)
+        for p in players:
+            p["league_key"] = key
+            p["league_name"] = LEAGUES[key]["name"]
+            p["league_id"] = LEAGUES[key]["id"]
+        return players
+
+    all_players = []
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        results = ex.map(_fetch_league, LEAGUES.keys())
+    for players in results:
+        all_players.extend(players)
+    all_players.sort(key=lambda x: x["StatValue"], reverse=True)
+    return all_players
+
+
+def get_top_ga_all_leagues(season=None, limit_per_league=10):
+    """
+    Lấy top G+A từ cả 5 giải, kèm xG và xA.
+    Returns: sorted list
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _fetch_league(key):
+        players = get_top_goals_assists(key, season, limit_per_league)
+        for p in players:
+            p["league_key"] = key
+            p["league_name"] = LEAGUES[key]["name"]
+            p["league_id"] = LEAGUES[key]["id"]
+        return players
+
+    all_players = []
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        results = ex.map(_fetch_league, LEAGUES.keys())
+    for players in results:
+        all_players.extend(players)
+    all_players.sort(key=lambda x: x["StatValue"], reverse=True)
+    return all_players
+
+
 def get_country_flag_url(ccode):
     """URL cờ quốc gia (ccode phải viết thường)."""
     return f"https://images.fotmob.com/image_resources/logo/teamlogo/{ccode.lower()}.png"

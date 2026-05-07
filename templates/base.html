@@ -30,6 +30,7 @@
             <button type="submit" formaction="{{ url_for('fm_topscorers') }}">Top Scorers</button>
             <button type="submit" formaction="{{ url_for('fm_topassists') }}">Top Assists</button>
             <button type="submit" formaction="{{ url_for('fm_topga') }}">G+A</button>
+            <a href="{{ url_for('fm_all_topscorers') }}" class="nav-link" style="font-size:0.82em;">🌍 All Leagues</a>
         </form>
         {% endif %}
     </nav>

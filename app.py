@@ -10,6 +10,7 @@ from fotmob import (
     get_available_seasons, get_player_info,
     get_team_info, get_team_squad, get_team_coach, get_team_venue,
     get_team_coach_history,
+    get_top_all_leagues, get_top_ga_all_leagues,
 )
 from honours_db import (
     ensure_indexes, get_player_honours, save_player_honours,
@@ -86,6 +87,36 @@ def fm_topga():
     ctx = _ctx()
     players = get_top_goals_assists(ctx["current_league"], ctx["current_season"], limit=30)
     return render_template("topga.html", players=players, **ctx)
+
+
+@app.route("/all/topscorers")
+def fm_all_topscorers():
+    ctx = _ctx()
+    season = ctx["current_season"]
+    players = get_top_all_leagues("goals", season=season, limit_per_league=10)
+    return render_template("top_all.html", players=players[:30],
+                           stat_type="goals", page_title="Top Scorers",
+                           page_subtitle="All Top 5 Leagues", **ctx)
+
+
+@app.route("/all/topassists")
+def fm_all_topassists():
+    ctx = _ctx()
+    season = ctx["current_season"]
+    players = get_top_all_leagues("goal_assist", season=season, limit_per_league=10)
+    return render_template("top_all.html", players=players[:30],
+                           stat_type="assists", page_title="Top Assists",
+                           page_subtitle="All Top 5 Leagues", **ctx)
+
+
+@app.route("/all/topga")
+def fm_all_topga():
+    ctx = _ctx()
+    season = ctx["current_season"]
+    players = get_top_ga_all_leagues(season=season, limit_per_league=10)
+    return render_template("top_all.html", players=players[:30],
+                           stat_type="ga", page_title="Top G+A",
+                           page_subtitle="All Top 5 Leagues", **ctx)
 
 
 def _parse_player_info(player):
