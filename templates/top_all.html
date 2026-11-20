@@ -2,26 +2,31 @@
 {% block title %}{{ page_title }} - All Leagues{% endblock %}
 {% block content %}
 <div class="container">
-    <div class="page-header glass">
+    <div class="page-header glass top-all-header">
         <i class="fas fa-globe" style="font-size:2.2em; color:var(--accent-light);"></i>
         <div>
             <div class="title">{{ page_title }}</div>
             <div class="subtitle">{{ page_subtitle }} · {{ current_season }}</div>
         </div>
+        <div class="competition-switch" role="group" aria-label="Competition scope">
+            <a href="{{ url_for(request.endpoint, season=current_season, scope='league') }}" class="tab-btn {% if competition_scope != 'all' %}active{% endif %}" {% if competition_scope != 'all' %}aria-current="page"{% endif %}>League only</a>
+            <a href="{{ url_for(request.endpoint, season=current_season, scope='all') }}" class="tab-btn {% if competition_scope == 'all' %}active{% endif %}" {% if competition_scope == 'all' %}aria-current="page"{% endif %}>All club competitions</a>
+        </div>
     </div>
 
     <!-- Tab buttons + Season selector -->
     <div style="display:flex; gap:8px; margin-bottom:20px; align-items:center; flex-wrap:wrap;">
-        <a href="{{ url_for('fm_all_topscorers', season=current_season) }}" class="tab-btn {% if stat_type == 'goals' %}active{% endif %}">
+        <a href="{{ url_for('fm_all_topscorers', season=current_season, scope=competition_scope) }}" class="tab-btn {% if stat_type == 'goals' %}active{% endif %}">
             <i class="fas fa-futbol"></i> Top Scorers
         </a>
-        <a href="{{ url_for('fm_all_topassists', season=current_season) }}" class="tab-btn {% if stat_type == 'assists' %}active{% endif %}">
+        <a href="{{ url_for('fm_all_topassists', season=current_season, scope=competition_scope) }}" class="tab-btn {% if stat_type == 'assists' %}active{% endif %}">
             <i class="fas fa-hands-helping"></i> Top Assists
         </a>
-        <a href="{{ url_for('fm_all_topga', season=current_season) }}" class="tab-btn {% if stat_type == 'ga' %}active{% endif %}">
+        <a href="{{ url_for('fm_all_topga', season=current_season, scope=competition_scope) }}" class="tab-btn {% if stat_type == 'ga' %}active{% endif %}">
             <i class="fas fa-chart-line"></i> G+A
         </a>
         <form method="GET" style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+            <input type="hidden" name="scope" value="{{ competition_scope }}">
             <select name="season" onchange="this.form.submit()" style="padding:6px 12px; border-radius:8px; background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-primary); font-family:'Inter',sans-serif; font-size:0.85em;">
                 {% for s in seasons %}
                 <option value="{{ s }}" {% if current_season == s %}selected{% endif %}>{{ s }}</option>
@@ -29,6 +34,23 @@
             </select>
         </form>
     </div>
+
+    {% if competition_scope == 'all' %}
+    <div class="glass competition-coverage">
+        <p>Official club matches for teams in the selected season's Top 5 leagues only. National teams and friendlies excluded.</p>
+        <p>Rating is a weighted average of available competition ratings by rated appearances. Missing minutes or expected-stat coverage is shown as —.</p>
+        {% if unavailable_competitions %}
+        <div class="competition-warning" role="status">
+            <strong>Partial totals: some competition data is unavailable.</strong>
+            <ul>{% for warning in unavailable_competitions %}<li>{{ warning }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+        <details>
+            <summary>Included competitions ({{ included_competitions|length }})</summary>
+            <p>{{ included_competitions|join(', ') if included_competitions else 'No competition statistics available.' }}</p>
+        </details>
+    </div>
+    {% endif %}
 
     <div class="table-card glass">
         <table>
@@ -38,6 +60,7 @@
                     <th>Player</th>
                     <th>Team</th>
                     <th>League</th>
+                    <th title="{{ 'Weighted average of available ratings by rated appearances' if competition_scope == 'all' else 'Average FotMob rating in this league for the selected season' }}">Rating</th>
                     {% if stat_type == 'goals' %}
                     <th>Goals</th>
                     <th>Mins/G</th>
@@ -76,20 +99,21 @@
                             <span style="font-size:0.82em; color:var(--text-secondary);">{{ p.league_name }}</span>
                         </span>
                     </td>
+                    <td>{% if p.Rating is defined and p.Rating is not none %}<span class="career-rating{% if p.Rating > 8 %} rating-high{% elif p.Rating > 7 %} rating-good{% endif %}">{{ "%.2f"|format(p.Rating) }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
                     {% if stat_type == 'goals' %}
-                    <td class="stat-bold">{{ p.StatValue|int }}{% if p.SubStatValue|int > 0 %} <span style="color:var(--text-muted);">({{ p.SubStatValue|int }})</span>{% endif %}</td>
-                    <td style="color:var(--text-secondary);">{{ (p.MinutesPlayed / p.StatValue)|round(0)|int if p.StatValue else '-' }}'</td>
+                    <td class="stat-bold">{{ p.StatValue|int }}{% if p.SubStatValue|int > 0 %} <span style="color:var(--text-muted);font-size: 14px;">({{ p.SubStatValue|int }})</span>{% endif %}</td>
+                    <td style="color:var(--text-secondary);">{% if p.MinutesPlayed is not none and p.StatValue %}{{ (p.MinutesPlayed / p.StatValue)|round(0)|int }}'{% else %}—{% endif %}</td>
                     {% elif stat_type == 'assists' %}
                     <td class="stat-bold">{{ p.StatValue|int }}</td>
-                    <td style="color:var(--text-secondary);">{{ (p.MinutesPlayed / p.StatValue)|round(0)|int if p.StatValue else '-' }}'</td>
+                    <td style="color:var(--text-secondary);">{% if p.MinutesPlayed is not none and p.StatValue %}{{ (p.MinutesPlayed / p.StatValue)|round(0)|int }}'{% else %}—{% endif %}</td>
                     {% else %}
-                    <td class="stat-bold">{{ p.StatValue|int }} <span style="color:var(--text-muted);">({{ p.Goals }}+{{ p.Assists }})</span></td>
-                    <td style="color:var(--green);">{{ p.xG }}</td>
-                    <td style="color:var(--blue);">{{ p.xA }}</td>
-                    <td style="color:var(--text-secondary);">{{ (p.MinutesPlayed / p.StatValue)|round(0)|int if p.StatValue else '-' }}'</td>
+                    <td class="stat-bold">{{ p.StatValue|int }}{% if p.Goals is defined and p.Goals is not none and p.Assists is defined and p.Assists is not none %} <span style="color:var(--text-muted);">({{ p.Goals }}+{{ p.Assists }})</span>{% endif %}</td>
+                    <td style="color:var(--green);">{{ p.xG if p.xG is not none else '—' }}</td>
+                    <td style="color:var(--blue);">{{ p.xA if p.xA is not none else '—' }}</td>
+                    <td style="color:var(--text-secondary);">{% if p.MinutesPlayed is not none and p.StatValue %}{{ (p.MinutesPlayed / p.StatValue)|round(0)|int }}'{% else %}—{% endif %}</td>
                     {% endif %}
-                    <td>{{ p.MatchesPlayed }}</td>
-                    <td>{{ p.MinutesPlayed }}</td>
+                    <td>{{ p.MatchesPlayed if p.MatchesPlayed is not none else '—' }}</td>
+                    <td>{{ p.MinutesPlayed if p.MinutesPlayed is not none else '—' }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

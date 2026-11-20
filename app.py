@@ -3,8 +3,18 @@ FotMob Web App - Modern Glassmorphism UI
 Chạy: python app_fotmob.py
 """
 import os
+import hmac
+import json
+import logging
+import re
+import secrets
+from datetime import datetime, timezone
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, Response
+from flask import Flask, abort, jsonify, render_template, request, redirect, session, url_for, Response
+from pymongo.errors import PyMongoError
+from requests.exceptions import RequestException
+from mongo import my_db
+from club_stats import get_top_club_stats
 from fotmob import (
     LEAGUES, get_standings, get_top_scorers, get_top_assists, get_top_goals_assists,
     get_available_seasons, get_player_info,
@@ -14,41 +24,140 @@ from fotmob import (
 )
 from honours_db import (
     ensure_indexes, get_player_honours, save_player_honours,
-    set_verified, seed_from_wikipedia, get_honours_summary,
-    auto_seed, player_honours as honours_coll, CATEGORY_MAP,
+    set_verified, seed_from_wikipedia, get_honours_summary, schedule_individual_refresh,
+    player_honours as honours_coll, CATEGORY_MAP,
+    is_individual_refresh_active, wait_for_individual_refresh,
 )
+from wiki_honours import is_disqualified_individual_award, sort_individual_awards, normalize_trophy_name
 
 app = Flask(__name__)
 
-ADMIN_USER = os.getenv("ADMIN_USER", "admin")
-ADMIN_PASS = os.getenv("ADMIN_PASS", "admin")
+APP_ENV = os.getenv("APP_ENV", "development").lower()
+ADMIN_USER = os.getenv("ADMIN_USER")
+ADMIN_PASS = os.getenv("ADMIN_PASS")
+secret_key = os.getenv("FLASK_SECRET_KEY")
+if APP_ENV == "production" and not secret_key:
+    raise RuntimeError("FLASK_SECRET_KEY must be configured in production")
+if APP_ENV == "production" and (not ADMIN_USER or not ADMIN_PASS):
+    raise RuntimeError("ADMIN_USER and ADMIN_PASS must be configured in production")
+
+app.config.update(
+    SECRET_KEY=secret_key or secrets.token_hex(32),
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.getenv("COOKIE_SECURE", "false").lower() == "true",
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _csrf_token():
+    token = session.get("_csrf_token")
+    if token is None:
+        token = secrets.token_urlsafe(32)
+        session["_csrf_token"] = token
+    return token
+
+
+@app.context_processor
+def inject_csrf_token():
+    return {"csrf_token": _csrf_token}
+
+
+@app.before_request
+def protect_admin_posts():
+    if request.method != "POST" or not (request.endpoint or "").startswith("fm_admin_"):
+        return
+    expected = session.get("_csrf_token", "")
+    submitted = request.form.get("_csrf_token", "")
+    if not expected or not hmac.compare_digest(expected.encode(), submitted.encode()):
+        abort(400, description="Invalid or missing CSRF token")
 
 
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        if not ADMIN_USER or not ADMIN_PASS:
+            logger.error("Admin access denied because credentials are not configured")
+            return Response("Admin access is not configured", 503)
         auth = request.authorization
-        if not auth or auth.username != ADMIN_USER or auth.password != ADMIN_PASS:
+        if not auth or not (
+            hmac.compare_digest(auth.username.encode(), ADMIN_USER.encode())
+            and hmac.compare_digest(auth.password.encode(), ADMIN_PASS.encode())
+        ):
             return Response("Login required", 401, {"WWW-Authenticate": 'Basic realm="Admin"'})
         return f(*args, **kwargs)
     return decorated
 
-DEFAULT_SEASONS = ["2025/2026", "2024/2025", "2023/2024", "2022/2023", "2021/2022", "2020/2021", "2019/2020", "2018/2019", "2017/2018", "2016/2017" ]
+def _valid_season(season):
+    match = re.fullmatch(r"(\d{4})/(\d{4})", season)
+    return bool(match and int(match.group(2)) == int(match.group(1)) + 1)
+
+
+def _available_seasons(league_key):
+    try:
+        seasons = get_available_seasons(league_key)
+        if isinstance(seasons, list):
+            seasons = [s for s in seasons if isinstance(s, str) and _valid_season(s)]
+            if seasons:
+                return seasons
+        logger.warning("FotMob returned no valid seasons for %s", league_key)
+    except (RequestException, json.JSONDecodeError) as exc:
+        logger.warning("Could not retrieve seasons for %s: %s", league_key, exc)
+
+    now = datetime.now(timezone.utc)
+    year = now.year if now.month >= 8 else now.year - 1
+    return [f"{start}/{start + 1}" for start in range(year, 2015, -1)]
 
 
 def _ctx(league_key=None, season=None):
     """Context chung cho mọi template."""
     league_key = league_key or request.args.get("league", "epl")
     season = season or request.args.get("season")
-    league = LEAGUES.get(league_key, LEAGUES["epl"])
+    if league_key not in LEAGUES:
+        abort(404)
+    if season and not _valid_season(season):
+        abort(400, description="Invalid season")
+    league = LEAGUES[league_key]
+    seasons = _available_seasons(league_key)
+    if season and season not in seasons:
+        seasons = [season, *seasons]
     return {
         "leagues": LEAGUES,
         "current_league": league_key,
-        "current_season": season or DEFAULT_SEASONS[0],
+        "current_season": season or seasons[0],
         "league_name": league["name"],
         "league_id": league["id"],
-        "seasons": DEFAULT_SEASONS,
+        "seasons": seasons,
     }
+
+
+@app.route("/healthz")
+def healthz():
+    return jsonify(status="ok")
+
+
+@app.route("/readyz")
+def readyz():
+    try:
+        my_db.command("ping")
+    except PyMongoError as exc:
+        logger.warning("MongoDB readiness check failed: %s", exc)
+        return jsonify(status="unavailable"), 503
+    return jsonify(status="ok")
+
+
+@app.errorhandler(RequestException)
+@app.errorhandler(json.JSONDecodeError)
+def handle_upstream_error(error):
+    logger.warning("Football data source request failed: %s", error)
+    return "Football data is temporarily unavailable", 503
+
+
+@app.errorhandler(PyMongoError)
+def handle_database_error(error):
+    logger.exception("MongoDB request failed")
+    return "Database is temporarily unavailable", 503
 
 
 # ============================================================
@@ -57,7 +166,7 @@ def _ctx(league_key=None, season=None):
 
 @app.route("/")
 def fm_home():
-    return render_template("home.html", leagues=LEAGUES, seasons=DEFAULT_SEASONS)
+    return render_template("home.html", leagues=LEAGUES, seasons=_available_seasons("epl"))
 
 
 @app.route("/standings")
@@ -91,32 +200,46 @@ def fm_topga():
 
 @app.route("/all/topscorers")
 def fm_all_topscorers():
-    ctx = _ctx()
-    season = ctx["current_season"]
-    players = get_top_all_leagues("goals", season=season, limit_per_league=10)
-    return render_template("top_all.html", players=players[:30],
-                           stat_type="goals", page_title="Top Scorers",
-                           page_subtitle="All Top 5 Leagues", **ctx)
+    return _render_all_top("goals", "Top Scorers")
 
 
 @app.route("/all/topassists")
 def fm_all_topassists():
-    ctx = _ctx()
-    season = ctx["current_season"]
-    players = get_top_all_leagues("goal_assist", season=season, limit_per_league=10)
-    return render_template("top_all.html", players=players[:30],
-                           stat_type="assists", page_title="Top Assists",
-                           page_subtitle="All Top 5 Leagues", **ctx)
+    return _render_all_top("assists", "Top Assists")
 
 
 @app.route("/all/topga")
 def fm_all_topga():
+    return _render_all_top("ga", "Top G+A")
+
+
+def _render_all_top(stat_type, title):
+    scope = request.args.get("scope", "league")
+    if scope not in ("league", "all"):
+        abort(400, description="Invalid competition scope")
     ctx = _ctx()
     season = ctx["current_season"]
-    players = get_top_ga_all_leagues(season=season, limit_per_league=10)
-    return render_template("top_all.html", players=players[:30],
-                           stat_type="ga", page_title="Top G+A",
-                           page_subtitle="All Top 5 Leagues", **ctx)
+    coverage = {}
+    if scope == "all":
+        totals = get_top_club_stats(stat_type, season)
+        players = totals["players"]
+        coverage = {
+            "included_competitions": totals["included_competitions"],
+            "unavailable_competitions": totals["unavailable_competitions"],
+        }
+    elif stat_type == "ga":
+        players = get_top_ga_all_leagues(season=season, limit_per_league=10)
+    else:
+        players = get_top_all_leagues(
+            "goals" if stat_type == "goals" else "goal_assist",
+            season=season, limit_per_league=10,
+        )
+    return render_template(
+        "top_all.html", players=players[:30], stat_type=stat_type, page_title=title,
+        page_subtitle="Top 5 League Clubs · All club competitions" if scope == "all"
+                      else "All Top 5 Leagues",
+        competition_scope=scope, **coverage, **ctx,
+    )
 
 
 def _parse_player_info(player):
@@ -131,6 +254,11 @@ def _parse_player_info(player):
             utc = fallback.get("utcTime", "")
             fallback = utc[:10] if utc else "-"
         result.append({"label": title, "value": fallback})
+    birth_date = player.get("birthDate")
+    if (isinstance(birth_date, dict) and isinstance(birth_date.get("utcTime"), str)
+            and birth_date["utcTime"]
+            and not any(info["label"].lower() in ("born", "date of birth") for info in result)):
+        result.append({"label": "Born", "value": birth_date["utcTime"][:10]})
     return result
 
 
@@ -144,7 +272,9 @@ def _aggregate_season_stats(player):
 
     career_items = player.get("careerHistory", {}).get("careerItems", {})
     stat_seasons = player.get("statSeasons", [])
-    matches = player.get("recentMatches", [])
+    matches = player.get("recentMatches")
+    if not isinstance(matches, list):
+        matches = []
 
     def _int(v):
         return int(_re.sub(r'\D', '', str(v or 0)) or 0)
@@ -219,59 +349,165 @@ def fm_player(player_id):
     # Redirect to coach page if isCoach
     if player.get("isCoach"):
         return redirect(url_for("fm_coach", coach_id=player_id))
-    career = player.get("careerHistory", {}).get("careerItems", {}) if player else {}
+    position_description = player.get("positionDescription")
+    primary_position = (
+        position_description.get("primaryPosition")
+        if isinstance(position_description, dict) else None
+    )
+    if not isinstance(primary_position, dict):
+        primary_position = {}
+    position_label = primary_position.get("label")
+    position_key = primary_position.get("key")
+    if not isinstance(position_key, str) or not position_key.strip():
+        extra_positions = position_description.get("positions") if isinstance(
+            position_description, dict
+        ) else None
+        if isinstance(extra_positions, list):
+            ordered_positions = sorted(
+                (position for position in extra_positions if isinstance(position, dict)),
+                key=lambda position: position.get("isMainPosition") is not True,
+            )
+            for position in ordered_positions:
+                details = position.get("strPos")
+                if not isinstance(details, dict):
+                    details = position.get("strPosShort")
+                if not isinstance(details, dict):
+                    continue
+                detail_key = details.get("key")
+                detail_label = details.get("label")
+                if isinstance(detail_key, str) and detail_key.strip():
+                    position_key = detail_key
+                    if isinstance(detail_label, str) and detail_label.strip():
+                        position_label = detail_label
+                    break
+    if not isinstance(position_label, str) or not position_label.strip():
+        position_label = "Unknown position"
+    if not isinstance(position_key, str) or not position_key.strip():
+        position_key = position_label
+    career_history = player.get("careerHistory")
+    career = career_history.get("careerItems", {}) if isinstance(career_history, dict) else {}
+    if not isinstance(career, dict):
+        career = {}
     trophies = player.get("trophies", {}) if player else {}
     player_info_list = _parse_player_info(player) if player else []
     season_stats, season_total, career_totals = _aggregate_season_stats(player)
-    # Group seasonEntries by team for club career dropdown
-    club_by_team = []
-    if career:
+
+    def group_career_teams(level):
+        career_level = career.get(level)
+        if not isinstance(career_level, dict):
+            return []
+        season_entries = career_level.get("seasonEntries")
+        if not isinstance(season_entries, list):
+            return []
+        team_entries = career_level.get("teamEntries")
+        if not isinstance(team_entries, list):
+            team_entries = []
+
         from collections import OrderedDict
         teams = OrderedDict()
-        for s in career.get("senior", {}).get("seasonEntries", []):
-            tid = s.get("teamId")
-            if tid not in teams:
-                te = next((e for e in career.get("senior", {}).get("teamEntries", []) if e.get("teamId") == tid), {})
-                teams[tid] = {
-                    "teamId": tid, "team": s.get("team", ""),
-                    "appearances": te.get("appearances", "0"), "goals": te.get("goals", "0"),
-                    "assists": te.get("assists", "0"),
-                    "startDate": te.get("startDate", ""), "endDate": te.get("endDate"),
+        for season in season_entries:
+            if not isinstance(season, dict):
+                continue
+            team_id = season.get("teamId")
+            has_team_id = (
+                isinstance(team_id, int) and not isinstance(team_id, bool) and team_id > 0
+            )
+            team_name = season.get("team") or season.get("teamName") or ""
+            if has_team_id:
+                group_key = ("id", team_id)
+            elif isinstance(team_name, str) and team_name.strip():
+                group_key = ("name", team_name.strip().casefold())
+            else:
+                group_key = ("unknown", len(teams))
+
+            if group_key not in teams:
+                if has_team_id:
+                    team_entry = next(
+                        (entry for entry in team_entries
+                         if isinstance(entry, dict) and entry.get("teamId") == team_id),
+                        {},
+                    )
+                else:
+                    team_entry = next(
+                        (entry for entry in team_entries
+                         if isinstance(entry, dict)
+                         and (entry.get("team") or entry.get("teamName")) == team_name),
+                        {},
+                    )
+                teams[group_key] = {
+                    "teamId": team_id if has_team_id else None,
+                    "teamKey": len(teams),
+                    "team": team_name,
+                    "appearances": team_entry.get("appearances", "0"),
+                    "goals": team_entry.get("goals", "0"),
+                    "assists": team_entry.get("assists", "0"),
+                    "startDate": team_entry.get("startDate", ""),
+                    "endDate": team_entry.get("endDate"),
                     "seasons": [],
                 }
-            teams[tid]["seasons"].append(s)
-        club_by_team = list(teams.values())
-    # Same for national team
-    nt_by_team = []
-    if career:
-        teams = OrderedDict()
-        for s in career.get("national team", {}).get("seasonEntries", []):
-            tid = s.get("teamId")
-            if tid not in teams:
-                te = next((e for e in career.get("national team", {}).get("teamEntries", []) if e.get("teamId") == tid), {})
-                teams[tid] = {
-                    "teamId": tid, "team": s.get("team", ""),
-                    "appearances": te.get("appearances", "0"), "goals": te.get("goals", "0"),
-                    "assists": te.get("assists", "0"),
-                    "startDate": te.get("startDate", ""), "endDate": te.get("endDate"),
-                    "seasons": [],
-                }
-            teams[tid]["seasons"].append(s)
-        nt_by_team = list(teams.values())
-    # Wiki honours (individual awards) - auto seed if not in DB
+            teams[group_key]["seasons"].append(season)
+        return list(teams.values())
+
+    club_by_team = group_career_teams("senior")
+    nt_by_team = group_career_teams("national team")
     wiki_individual = None
-    try:
-        doc = auto_seed(player.get('id'), player.get('name', ''))
-        if doc:
-            wiki_individual = doc.get('honours', {}).get('individual', [])
-    except Exception:
-        pass
+    doc = get_player_honours(player.get('id'))
+    birth_date = player.get('birthDate')
+    birth_date = birth_date.get('utcTime') if isinstance(birth_date, dict) else None
+    birth_date = birth_date[:10] if isinstance(birth_date, str) else None
+    scheduled = schedule_individual_refresh(player.get('id'), player.get('name', ''), doc, birth_date)
+    is_active = is_individual_refresh_active(player.get('id'))
+    if doc:
+        raw_indiv = doc.get('honours', {}).get('individual', [])
+        sanitized = []
+        for a in raw_indiv:
+            trophy = a.get('trophy', '')
+            if not is_disqualified_individual_award(trophy):
+                copied = dict(a)
+                copied['trophy'] = normalize_trophy_name(trophy)
+                sanitized.append(copied)
+        wiki_individual = sort_individual_awards(sanitized)
+    honours_loading = bool((scheduled or is_active) and not wiki_individual)
+    honours_refreshing = bool((scheduled or is_active) and bool(wiki_individual))
     return render_template("player.html", player=player, career=career,
+                           position_key=position_key.casefold(), position_label=position_label,
                            trophies=trophies, wiki_individual=wiki_individual,
+                           honours_loading=honours_loading,
+                           honours_refreshing=honours_refreshing,
                            player_info_list=player_info_list,
                            season_stats=season_stats, season_total=season_total,
                            career_totals=career_totals, club_by_team=club_by_team,
                            nt_by_team=nt_by_team, **ctx)
+
+
+@app.route("/player/<int:player_id>/honours-data")
+def player_honours_data(player_id):
+    if is_individual_refresh_active(player_id):
+        wait_for_individual_refresh(player_id, timeout=1.5)
+
+    doc = get_player_honours(player_id)
+    is_active = is_individual_refresh_active(player_id)
+
+    raw_indiv = doc.get('honours', {}).get('individual', []) if doc else []
+    sanitized = []
+    for a in raw_indiv:
+        trophy = a.get('trophy', '')
+        if not is_disqualified_individual_award(trophy):
+            copied = dict(a)
+            copied['trophy'] = normalize_trophy_name(trophy)
+            sanitized.append(copied)
+    wiki_individual = sort_individual_awards(sanitized)
+
+    html = render_template(
+        "_player_individual_awards.html",
+        wiki_individual=wiki_individual,
+        honours_loading=is_active,
+    )
+    return jsonify({
+        "loading": is_active,
+        "count": len(wiki_individual),
+        "html": html,
+    })
 
 
 def _parse_trophy_list(info):
@@ -279,16 +515,43 @@ def _parse_trophy_list(info):
     raw = info.get("history", {}).get("trophyList", []) if info else []
     result = []
     total = 0
+
+    def scalar(value):
+        if isinstance(value, list):
+            return value[0] if len(value) == 1 else None
+        return value
+
     for t in raw:
-        won = int(t.get("won", ["0"])[0])
+        if not isinstance(t, dict):
+            logger.warning("Skipping invalid FotMob trophy entry: %r", t)
+            continue
+        name = scalar(t.get("name"))
+        count = scalar(t.get("won"))
+        if not isinstance(name, str) or not name.strip():
+            logger.warning("Skipping FotMob trophy with invalid name: %r", name)
+            continue
+        if isinstance(count, bool) or not (
+            isinstance(count, int) and count >= 0
+            or isinstance(count, str) and count.isascii() and count.isdigit()
+        ):
+            logger.warning("Skipping FotMob trophy %s with invalid win count: %r", name, count)
+            continue
+        won = int(count)
         if won == 0:
             continue
-        seasons_str = t.get("season_won", [""])[0]
-        seasons = [s.strip() for s in seasons_str.split(",") if s.strip()]
+        seasons_value = t.get("seasonsWon", t.get("season_won", ""))
+        if isinstance(seasons_value, str):
+            seasons_value = [seasons_value]
+        if not isinstance(seasons_value, list) or not all(isinstance(s, str) for s in seasons_value):
+            logger.warning("FotMob trophy %s has invalid seasons: %r", name, seasons_value)
+            seasons_value = []
+        seasons = [s.strip() for value in seasons_value for s in value.split(",") if s.strip()]
+        league_id = scalar(t.get("leagueId", t.get("tournamentTemplateId", "")))
+        area = scalar(t.get("area", ""))
         result.append({
-            "name": t["name"][0],
-            "league_id": t.get("tournamentTemplateId", [""])[0],
-            "area": t.get("area", [""])[0],
+            "name": name,
+            "league_id": league_id if league_id is not None else "",
+            "area": area if area is not None else "",
             "won": won,
             "seasons_won": seasons,
         })
@@ -511,7 +774,10 @@ def fm_admin_honours():
 @app.route('/admin/honours/seed', methods=['POST'])
 @admin_required
 def fm_admin_seed():
-    fid = int(request.form['fotmob_id'])
+    try:
+        fid = int(request.form['fotmob_id'])
+    except (KeyError, ValueError):
+        abort(400, description="Invalid FotMob player ID")
     name = request.form['player_name']
     wiki = request.form['wiki_page']
     force = 'force' in request.form
@@ -561,6 +827,8 @@ def fm_admin_toggle_verified(fotmob_id):
 @app.route('/admin/honours/<int:fotmob_id>/update/<category>', methods=['POST'])
 @admin_required
 def fm_admin_update_category(fotmob_id, category):
+    if category not in CAT_LABELS:
+        abort(404)
     doc = get_player_honours(fotmob_id)
     if not doc:
         return 'Not found', 404
@@ -576,7 +844,13 @@ def fm_admin_update_category(fotmob_id, category):
         if not trophy:
             continue
         years = [y.strip() for y in years_str.split(',') if y.strip()]
-        entry = {'trophy': trophy, 'years': years, 'count': int(count) if count else len(years)}
+        try:
+            count_value = int(count) if count else len(years)
+        except ValueError:
+            abort(400, description="Invalid honours count")
+        if count_value < 0:
+            abort(400, description="Invalid honours count")
+        entry = {'trophy': trophy, 'years': years, 'count': count_value}
         context = context.strip()
         if context:
             if category.startswith('intl'):
@@ -607,6 +881,8 @@ def fm_admin_add_category(fotmob_id):
     if not doc:
         return 'Not found', 404
     cat = request.form['category']
+    if cat not in ALL_CATS:
+        abort(400, description="Invalid honours category")
     honours = doc.get('honours', {})
     if cat not in honours:
         honours[cat] = []
@@ -620,4 +896,4 @@ def fm_admin_add_category(fotmob_id):
 
 if __name__ == "__main__":
     ensure_indexes()
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    app.run(debug=False, host="127.0.0.1", port=5001)

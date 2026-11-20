@@ -21,6 +21,7 @@
         <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
             <a href="{{ url_for('fm_admin_honours') }}" class="btn btn-outline btn-sm"><i class="fas fa-arrow-left"></i> Back</a>
             <form method="POST" action="{{ url_for('fm_admin_toggle_verified', fotmob_id=player.fotmob_id) }}" style="display:inline">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn {{ 'btn-outline' if player.verified else 'btn-primary' }} btn-sm">
                     <i class="fas {{ 'fa-times' if player.verified else 'fa-check' }}"></i>
                     {{ 'Unverify' if player.verified else 'Mark Verified' }}
@@ -59,6 +60,7 @@
         </div>
 
         <form method="POST" action="{{ url_for('fm_admin_update_category', fotmob_id=player.fotmob_id, category=cat) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <table class="admin-table admin-edit-table">
                 <thead>
                     <tr>
@@ -101,6 +103,7 @@
     <div class="glass admin-section" style="padding:20px; margin-bottom:24px;">
         <div class="section-title"><i class="fas fa-folder-plus"></i> Thêm category mới</div>
         <form method="POST" action="{{ url_for('fm_admin_add_category', fotmob_id=player.fotmob_id) }}" class="seed-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <select name="category" class="admin-input" style="width:auto">
                 {% for key, label in all_cats.items() %}
                 {% if key not in honours %}

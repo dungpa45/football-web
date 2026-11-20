@@ -40,9 +40,9 @@
                             <span>{{ p.TeamName }}</span>
                         </a>
                     </td>
-                    <td class="stat-bold">{{ p.StatValue|int }} <span style="color:var(--text-muted);">({{ p.Goals }}+{{ p.Assists }})</span></td>
-                    <td style="color:var(--green);">{{ p.xG }}</td>
-                    <td style="color:var(--blue);">{{ p.xA }}</td>
+                    <td class="stat-bold">{{ p.StatValue|int }}{% if p.Goals is defined and p.Goals is not none and p.Assists is defined and p.Assists is not none %} <span style="color:var(--text-muted);">({{ p.Goals }}+{{ p.Assists }})</span>{% endif %}</td>
+                    <td style="color:var(--green);">{{ p.xG if p.xG is not none else '—' }}</td>
+                    <td style="color:var(--blue);">{{ p.xA if p.xA is not none else '—' }}</td>
                     <td>{{ p.MatchesPlayed }}</td>
                     <td>{{ p.MinutesPlayed }}</td>
                     <td style="color:var(--text-secondary);">{{ (p.MinutesPlayed / p.StatValue)|round(0)|int if p.StatValue else '-' }}'</td>

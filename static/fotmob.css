@@ -108,6 +108,13 @@ a:hover { color: #c4b5fd; }
 }
 .page-header .title { font-size: 1.6em; font-weight: 700; }
 .page-header .subtitle { color: var(--text-secondary); font-size: 0.95em; font-weight: 400; }
+.top-all-header { flex-wrap: wrap; }
+.competition-switch { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.competition-coverage { padding: 16px 20px; margin-bottom: 20px; font-size: 0.85em; color: var(--text-secondary); }
+.competition-coverage p + p, .competition-coverage details { margin-top: 8px; }
+.competition-coverage summary { cursor: pointer; color: var(--accent-light); }
+.competition-warning { margin-top: 12px; color: var(--yellow); }
+.competition-warning ul { padding-left: 20px; }
 
 /* ============ TABLE ============ */
 .table-card { padding: 0; overflow: hidden; }
@@ -123,7 +130,7 @@ thead th {
     position: sticky; top: 0;
 }
 tbody td {
-    padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    padding: 4px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
     vertical-align: middle;
 }
 tbody tr { transition: var(--transition); }
@@ -214,6 +221,113 @@ tbody tr:hover { background: var(--glass-hover); }
 .profile-header .name { font-size: 1.5em; font-weight: 700; }
 .profile-header .meta { color: var(--text-secondary); font-size: 0.9em; }
 
+.player-profile .profile-grid { gap: 16px; }
+.player-profile .profile-card { padding: 18px; }
+.player-profile .profile-header { gap: 14px; margin-bottom: 16px; }
+.player-profile .player-section { padding: 16px; margin-top: 12px; }
+.player-profile .profile-grid > div > .player-section:first-child { margin-top: 0; }
+.player-profile .section-title { margin-bottom: 10px; padding-bottom: 8px; }
+.player-profile .stats-row { margin-top: 10px; }
+.player-info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+.player-info-item { padding: 1px 0; border-bottom: 1px solid rgba(255,255,255,0.05); min-width: 0; }
+.player-info-item dt { color: var(--text-secondary); font-size: 0.75em;}
+.player-info-item dd { font-weight: 450; overflow-wrap: anywhere; }
+.player-trophy-team { margin-bottom: 12px; }
+.player-trophy-team:last-child { margin-bottom: 0; }
+.player-trophy-team-name {
+    font-weight: 600; margin-bottom: 6px; display: flex; align-items: center;
+    gap: 8px; font-size: 0.95em; flex-wrap: wrap;
+}
+.player-trophy-team-name img { width: 26px; height: 26px; object-fit: contain; }
+.team-trophy-total {
+    margin-left: auto; padding: 2px 8px; border-radius: 10px;
+    color: #a7f3d0; background: rgba(52,211,153,0.12); font-size: 0.8em; white-space: nowrap;
+}
+.honours-header {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    cursor: pointer; list-style: none; font-size: 1.1em; font-weight: 600;
+}
+.honours-header::-webkit-details-marker { display: none; }
+.honours-header span i { color: var(--accent-light); margin-right: 8px; }
+.honours-chevron { color: var(--accent-light); transition: transform 0.2s ease; }
+.honours-section[open] .honours-chevron { transform: rotate(180deg); }
+.honours-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px; margin-top: 16px;
+}
+.honours-empty { color: var(--text-muted); font-size: 0.85em; }
+.honour-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 24px; padding: 1px 6px; border-radius: 6px;
+    color: #fde68a; background: rgba(245,158,11,0.22);
+    font-size: 0.9em; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+
+/* Honours live badges & loading state */
+.honours-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72em;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: rgba(96, 165, 250, 0.15);
+    color: #93c5fd;
+    border: 1px solid rgba(96, 165, 250, 0.3);
+    margin-left: 8px;
+    vertical-align: middle;
+}
+.honours-update-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.72em;
+    font-weight: 500;
+    padding: 1px 7px;
+    border-radius: 9999px;
+    background: rgba(16, 185, 129, 0.12);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    margin-left: 8px;
+    vertical-align: middle;
+}
+.honours-loading-box {
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    margin-bottom: 6px;
+}
+.honours-loading-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85em;
+    color: var(--accent-light);
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+.honours-skeleton-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.honours-skeleton-item {
+    height: 38px;
+    border-radius: 8px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+    background-size: 200% 100%;
+    animation: honours-shimmer 1.5s infinite;
+}
+@keyframes honours-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+@media (max-width: 768px) {
+    .honours-grid { grid-template-columns: 1fr; }
+}
+
 /* Player badges row */
 .player-badges {
     display: flex; align-items: center; gap: 10px;
@@ -240,6 +354,9 @@ tbody tr:hover { background: var(--glass-hover); }
     line-height: 1.4;
 }
 .player-team-badge img { width: 20px; height: 20px; object-fit: contain; }
+.player-profile .profile-header .player-team-badge img {
+    width: 20px; height: 20px; border: 0; border-radius: 0; box-shadow: none;
+}
 .player-team-badge:hover { background: var(--glass-hover); border-color: var(--accent); color: var(--accent-light); }
 
 .info-table { width: 100%; }
@@ -293,7 +410,7 @@ tbody tr:hover { background: var(--glass-hover); }
 .trophy-highlight-domestic { background: rgba(52, 211, 153, 0.08); border-left: 3px solid var(--green); }
 
 /* Squad groups */
-.squad-group { margin-bottom: 20px; }
+.squad-group
 .squad-group-title {
     font-size: 0.8em; font-weight: 600; text-transform: uppercase;
     letter-spacing: 1px; color: var(--accent-light); margin-bottom: 8px;
@@ -440,13 +557,15 @@ tbody tr:hover { background: var(--glass-hover); }
 .career-team-row:hover, .career-season-row:hover { background: var(--glass-hover); }
 .career-season-row { cursor: pointer; }
 .career-tourney-row td { border-bottom-color: transparent; }
-.career-period { font-size: 0.78em; color: var(--text-muted); font-weight: 400; margin-left: 4px; }
+.career-period { font-size: 0.78em; font-weight: 400; margin-left: 4px; }
 .career-period::before { content: ''; margin-right: 30px; }
 .career-chevron { color: var(--text-muted); font-size: 0.65em; transition: transform 0.25s ease; }
 .career-rating {
-    font-size: 0.78em; font-weight: 600; padding: 2px 8px;
+    font-size: 0.98em; font-weight: 600; padding: 2px 8px;
     border-radius: 6px; background: rgba(124,58,237,0.15); color: var(--accent-light);
 }
+.career-rating.rating-high { background: #059669; color: #fff; }
+.career-rating.rating-good { background: rgba(52,211,153,0.15); color: var(--green); }
 .hidden { display: none !important; }
 
 /* ============ RESPONSIVE ============ */
@@ -676,10 +795,6 @@ tbody tr:hover { background: var(--glass-hover); }
     font-weight: 500; font-size: 0.88em;
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
-.indiv-count {
-    font-size: 0.72em; font-weight: 700; padding: 1px 7px;
-    border-radius: 10px; background: rgba(255,255,255,0.1); color: var(--text-secondary);
-}
 .indiv-years { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
 .indiv-year-tag {
     font-size: 0.72em; padding: 1px 7px; border-radius: 5px;
@@ -689,23 +804,95 @@ tbody tr:hover { background: var(--glass-hover); }
 
 /* Tier: Ballon d'Or */
 .indiv-ballon {
-    background: linear-gradient(135deg, rgba(251,191,36,0.08), rgba(217,119,6,0.04));
+    background: linear-gradient(135deg, rgba(251,191,36,0.12), rgba(217,119,6,0.05));
     border-left-color: #fbbf24;
 }
-.indiv-ballon .indiv-icon { background: rgba(251,191,36,0.15); }
+.indiv-ballon .indiv-icon { background: rgba(251,191,36,0.18); }
 .indiv-ballon .indiv-name { color: #fde68a; }
-.indiv-ballon .indiv-count { background: rgba(251,191,36,0.2); color: #fbbf24; }
 .indiv-ballon .indiv-year-tag { background: rgba(251,191,36,0.1); color: #fcd34d; border-color: rgba(251,191,36,0.2); }
 
 /* Tier: FIFA The Best */
 .indiv-fifabest {
-    background: linear-gradient(135deg, rgba(96,165,250,0.08), rgba(37,99,235,0.04));
+    background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(37,99,235,0.05));
     border-left-color: #60a5fa;
 }
-.indiv-fifabest .indiv-icon { background: rgba(96,165,250,0.15); }
+.indiv-fifabest .indiv-icon { background: rgba(96,165,250,0.18); }
 .indiv-fifabest .indiv-name { color: #93c5fd; }
-.indiv-fifabest .indiv-count { background: rgba(96,165,250,0.2); color: #60a5fa; }
 .indiv-fifabest .indiv-year-tag { background: rgba(96,165,250,0.1); color: #93c5fd; border-color: rgba(96,165,250,0.2); }
+
+/* Tier: League Player of the Season / Year */
+.indiv-league-poty {
+    background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.05));
+    border-left-color: #10b981;
+}
+.indiv-league-poty .indiv-icon { background: rgba(16,185,129,0.18); }
+.indiv-league-poty .indiv-name { color: #6ee7b7; }
+.indiv-league-poty .indiv-year-tag { background: rgba(16,185,129,0.1); color: #6ee7b7; border-color: rgba(16,185,129,0.2); }
+
+/* Major Individual Awards Highlight (Ballon d'Or, FIFA The Best, League POTY) */
+.indiv-major {
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.indiv-major .indiv-icon {
+    width: 26px; height: 26px; border-radius: 8px;
+}
+.indiv-major .indiv-icon img {
+    width: 24px; height: 24px;
+}
+.indiv-major .trophy-emoji {
+    font-size: 1.15em;
+}
+.indiv-major .indiv-name {
+    font-size: 0.92em;
+    font-weight: 700;
+}
+.indiv-major.indiv-ballon {
+    border-left: 4px solid #fbbf24;
+    border-color: rgba(251,191,36,0.3);
+    box-shadow: 0 3px 14px rgba(251,191,36,0.14);
+}
+.indiv-major.indiv-fifabest {
+    border-left: 4px solid #60a5fa;
+    border-color: rgba(96,165,250,0.3);
+    box-shadow: 0 3px 14px rgba(96,165,250,0.14);
+}
+.indiv-major.indiv-league-poty {
+    border-left: 4px solid #10b981;
+    border-color: rgba(16,185,129,0.3);
+    box-shadow: 0 3px 14px rgba(16,185,129,0.14);
+}
+
+/* Prestige badges */
+.indiv-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 7px;
+    border-radius: 9999px;
+    font-size: 0.72em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-left: auto;
+}
+.indiv-badge-gold {
+    background: rgba(251,191,36,0.2);
+    color: #fde68a;
+    border: 1px solid rgba(251,191,36,0.4);
+}
+.indiv-badge-blue {
+    background: rgba(96,165,250,0.2);
+    color: #93c5fd;
+    border: 1px solid rgba(96,165,250,0.4);
+}
+.indiv-badge-league {
+    background: rgba(16,185,129,0.2);
+    color: #6ee7b7;
+    border: 1px solid rgba(16,185,129,0.4);
+}
 
 /* Tier: World Cup awards */
 .indiv-wc-ball {
@@ -714,7 +901,6 @@ tbody tr:hover { background: var(--glass-hover); }
 }
 .indiv-wc-ball .indiv-icon { background: rgba(251,191,36,0.12); }
 .indiv-wc-ball .indiv-name { color: #fde68a; }
-.indiv-wc-ball .indiv-count { background: rgba(251,191,36,0.18); color: #f59e0b; }
 .indiv-wc-ball .indiv-year-tag { background: rgba(251,191,36,0.08); color: #fcd34d; border-color: rgba(251,191,36,0.15); }
 
 .indiv-wc-boot {
@@ -723,7 +909,6 @@ tbody tr:hover { background: var(--glass-hover); }
 }
 .indiv-wc-boot .indiv-icon { background: rgba(217,119,6,0.12); }
 .indiv-wc-boot .indiv-name { color: #fcd34d; }
-.indiv-wc-boot .indiv-count { background: rgba(217,119,6,0.18); color: #d97706; }
 .indiv-wc-boot .indiv-year-tag { background: rgba(217,119,6,0.08); color: #fcd34d; border-color: rgba(217,119,6,0.15); }
 
 /* Tier: European Golden Shoe */
@@ -733,7 +918,6 @@ tbody tr:hover { background: var(--glass-hover); }
 }
 .indiv-goldenshoe .indiv-icon { background: rgba(245,158,11,0.15); }
 .indiv-goldenshoe .indiv-name { color: #fde68a; }
-.indiv-goldenshoe .indiv-count { background: rgba(245,158,11,0.2); color: #f59e0b; }
 .indiv-goldenshoe .indiv-year-tag { background: rgba(245,158,11,0.1); color: #fcd34d; border-color: rgba(245,158,11,0.2); }
 
 /* Tier: UCL */
@@ -743,7 +927,6 @@ tbody tr:hover { background: var(--glass-hover); }
 }
 .indiv-ucl .indiv-icon { background: rgba(96,165,250,0.12); }
 .indiv-ucl .indiv-name { color: #93c5fd; }
-.indiv-ucl .indiv-count { background: rgba(96,165,250,0.18); color: #60a5fa; }
 .indiv-ucl .indiv-year-tag { background: rgba(96,165,250,0.08); color: #93c5fd; border-color: rgba(96,165,250,0.15); }
 
 /* Tier: Continental (Copa América, Euro) */
@@ -753,7 +936,6 @@ tbody tr:hover { background: var(--glass-hover); }
 }
 .indiv-continental .indiv-icon { background: rgba(52,211,153,0.12); }
 .indiv-continental .indiv-name { color: #6ee7b7; }
-.indiv-continental .indiv-count { background: rgba(52,211,153,0.18); color: #34d399; }
 .indiv-continental .indiv-year-tag { background: rgba(52,211,153,0.08); color: #6ee7b7; border-color: rgba(52,211,153,0.15); }
 
 /* Tier: Puskás */
@@ -763,7 +945,6 @@ tbody tr:hover { background: var(--glass-hover); }
 }
 .indiv-puskas .indiv-icon { background: rgba(244,114,182,0.12); }
 .indiv-puskas .indiv-name { color: #f9a8d4; }
-.indiv-puskas .indiv-count { background: rgba(244,114,182,0.18); color: #f472b6; }
 
 /* Tier: Young star (Golden Boy, Kopa) */
 .indiv-youngstar {
@@ -772,7 +953,6 @@ tbody tr:hover { background: var(--glass-hover); }
 }
 .indiv-youngstar .indiv-icon { background: rgba(196,181,253,0.12); }
 .indiv-youngstar .indiv-name { color: #c4b5fd; }
-.indiv-youngstar .indiv-count { background: rgba(196,181,253,0.18); color: #a78bfa; }
 
 /* Tier: Laureus */
 .indiv-laureus {
@@ -789,7 +969,6 @@ tbody tr:hover { background: var(--glass-hover); }
 }
 .indiv-poty .indiv-icon { background: rgba(124,58,237,0.12); }
 .indiv-poty .indiv-name { color: var(--accent-light); }
-.indiv-poty .indiv-count { background: rgba(124,58,237,0.18); color: var(--accent-light); }
 .indiv-poty .indiv-year-tag { background: rgba(124,58,237,0.08); color: var(--accent-light); border-color: rgba(124,58,237,0.15); }
 
 /* Tier: Top scorer */
@@ -799,7 +978,6 @@ tbody tr:hover { background: var(--glass-hover); }
 }
 .indiv-topscorer .indiv-icon { background: rgba(245,158,11,0.1); }
 .indiv-topscorer .indiv-name { color: #fcd34d; }
-.indiv-topscorer .indiv-count { background: rgba(245,158,11,0.15); color: #d97706; }
 .indiv-topscorer .indiv-year-tag { background: rgba(245,158,11,0.08); color: #fcd34d; border-color: rgba(245,158,11,0.12); }
 
 /* Tier: Default */

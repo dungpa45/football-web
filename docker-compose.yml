@@ -1,41 +1,24 @@
 services:
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS:-changeme}
-    volumes:
-      - ./data/mongo:/data/db
-
-  mongo-express:
-    image: mongo-express
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
-    depends_on:
-      - mongo
-    environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER:-admin}
-      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASS:-changeme}
-      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-changeme}@mongo:27017/
-      ME_CONFIG_BASICAUTH_USERNAME: ${ME_USER:-admin}
-      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_PASS:-admin}
-
   app:
     build: .
     restart: unless-stopped
     ports:
-      - "5001:5001"
-    depends_on:
-      - mongo
+      - "127.0.0.1:5001:5001"
+    env_file:
+      - .env
     environment:
-      MONGO_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASS:-changeme}@mongo:27017/
-      ADMIN_USER: ${ADMIN_USER:-admin}
-      ADMIN_PASS: ${ADMIN_PASS:-admin}
-
-networks:
-  mongo-compose-network:
-    driver: bridge
+      APP_ENV: production
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY:?Set FLASK_SECRET_KEY in .env}
+      ADMIN_USER: ${ADMIN_USER:?Set ADMIN_USER in .env}
+      ADMIN_PASS: ${ADMIN_PASS:?Set ADMIN_PASS in .env}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:5001/readyz", timeout=4)
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

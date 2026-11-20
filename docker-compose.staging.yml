@@ -1,0 +1,6 @@
+services:
+  app:
+    ports: !override
+      - "127.0.0.1:5002:5001"
+    env_file: !override
+      - ${STAGING_ENV_FILE:?Set STAGING_ENV_FILE to a separate staging env file}

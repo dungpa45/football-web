@@ -1,0 +1,124 @@
+{% if wiki_individual %}
+    {% for award in wiki_individual %}
+    {% set al = award.trophy|lower %}
+    {% if 'nominee' in al or 'nomination' in al or 'runner-up' in al or 'runners-up' in al or 'shortlist' in al or 'candidate' in al %}
+        {# Filter out any non-winning nominations #}
+    {% else %}
+    {% set is_gerd_muller = ('gerd müller' in al or 'gerd muller' in al or 'striker of the year' in al) %}
+    {% set is_ballon = (not is_gerd_muller and ("ballon d'or" in al or "ballon d’or" in al or "ballon dor" in al)) %}
+    {% set is_fifabest = (not is_ballon and ('the best fifa' in al or 'fifa world player' in al)) %}
+    {% set is_club = ('club' in al or 'manchester' in al or 'liverpool' in al or 'chelsea' in al or 'arsenal' in al or 'tottenham' in al or 'city ' in al or ' united' in al or 'madrid' in al or 'barcelona' in al or 'bayern' in al or 'juventus' in al or 'milan' in al or 'inter ' in al or 'roma' in al or 'psg' in al or 'dortmund' in al or 'brighton' in al or 'everton' in al or 'newcastle' in al or 'aston villa' in al or 'fans' in al) %}
+    {% set is_league_poty = (not is_club and not is_ballon and not is_fifabest and not ('playmaker' in al or 'young' in al) and ('premier league player of the season' in al or 'pfa players' in al or 'football writers' in al or 'fwa footballer' in al or 'la liga best player' in al or 'la liga player of the season' in al or 'trofeo alfredo di stéfano' in al or 'serie a footballer' in al or 'serie a most valuable' in al or 'serie a best player' in al or 'serie a player of the season' in al or 'bundesliga player of the season' in al or 'german footballer of the year' in al or 'footballer of the year in germany' in al or 'ligue 1 player of the year' in al or 'unfp ligue 1' in al or 'eredivisie player of the year' in al or 'dutch footballer of the year' in al or 'primeira liga player of the year' in al or 'liga portugal player of the season' in al or 'mls most valuable' in al or 'saudi pro league player of the season' in al or (('premier league' in al or 'la liga' in al or 'serie a' in al or 'bundesliga' in al or 'ligue 1' in al or 'eredivisie' in al or 'primeira liga' in al or 'mls' in al or 'saudi pro league' in al) and ('player of the season' in al or 'player of the year' in al or 'footballer of the year' in al or 'most valuable player' in al or 'best player' in al)))) %}
+
+    {% if is_ballon %}
+        {% set tier = 'ballon' %}
+        {% set is_major = true %}
+        {% set badge_text = "Ballon d'Or" %}
+        {% set badge_class = 'indiv-badge-gold' %}
+    {% elif is_fifabest %}
+        {% set tier = 'fifabest' %}
+        {% set is_major = true %}
+        {% set badge_text = 'FIFA The Best' %}
+        {% set badge_class = 'indiv-badge-blue' %}
+    {% elif is_league_poty %}
+        {% set tier = 'league-poty' %}
+        {% set is_major = true %}
+        {% set badge_text = 'League MVP' %}
+        {% set badge_class = 'indiv-badge-league' %}
+    {% elif 'world cup' in al and ('golden ball' in al) %}
+        {% set tier = 'wc-ball' %}
+        {% set is_major = false %}
+    {% elif 'world cup' in al and ('golden boot' in al) %}
+        {% set tier = 'wc-boot' %}
+        {% set is_major = false %}
+    {% elif 'golden shoe' in al %}
+        {% set tier = 'goldenshoe' %}
+        {% set is_major = false %}
+    {% elif 'champions league' in al %}
+        {% set tier = 'ucl' %}
+        {% set is_major = false %}
+    {% elif 'copa am' in al or 'euro' in al and 'golden' in al %}
+        {% set tier = 'continental' %}
+        {% set is_major = false %}
+    {% elif 'puskás' in al or 'puskas' in al %}
+        {% set tier = 'puskas' %}
+        {% set is_major = false %}
+    {% elif 'golden boy' in al or 'kopa' in al %}
+        {% set tier = 'youngstar' %}
+        {% set is_major = false %}
+    {% elif 'laureus' in al %}
+        {% set tier = 'laureus' %}
+        {% set is_major = false %}
+    {% elif 'playmaker' in al %}
+        {% set tier = 'playmaker' %}
+        {% set is_major = false %}
+    {% elif 'player of the year' in al or 'footballer of the year' in al or 'best player' in al or 'player of the season' in al or 'mvp' in al or 'most valuable' in al %}
+        {% set tier = 'poty' %}
+        {% set is_major = false %}
+    {% elif is_gerd_muller or 'pichichi' in al or 'capocannoniere' in al or 'golden boot' in al or 'top scorer' in al or 'top goalscorer' in al %}
+        {% set tier = 'topscorer' %}
+        {% set is_major = false %}
+    {% else %}
+        {% set tier = 'default' %}
+        {% set is_major = false %}
+    {% endif %}
+    <div class="indiv-award indiv-{{ tier }}{% if is_league_poty or tier == 'playmaker' or tier == 'poty' %} indiv-poty{% endif %}{% if is_major %} indiv-major{% endif %}">
+        <div class="indiv-icon">
+            {% if tier == 'ballon' %}
+                <img src="{{ url_for('static', filename='trophy_icons/ballon_dor.png') }}" alt="Ballon d'Or">
+            {% elif tier == 'fifabest' %}
+                <img src="{{ url_for('static', filename='trophy_icons/fifa_best.png') }}" alt="FIFA The Best">
+            {% elif tier == 'league-poty' %}
+                <span class="trophy-emoji">👑</span>
+            {% elif tier == 'wc-ball' %}
+                <span class="trophy-emoji">⚽</span>
+            {% elif tier == 'wc-boot' or tier == 'goldenshoe' or tier == 'topscorer' %}
+                <span class="trophy-emoji">👟</span>
+            {% elif tier == 'ucl' %}
+                <span class="trophy-emoji">⭐</span>
+            {% elif tier == 'continental' %}
+                <span class="trophy-emoji">🥇</span>
+            {% elif tier == 'puskas' or tier == 'playmaker' %}
+                <span class="trophy-emoji">🎯</span>
+            {% elif tier == 'youngstar' %}
+                <span class="trophy-emoji">💎</span>
+            {% elif tier == 'laureus' %}
+                <span class="trophy-emoji">🏅</span>
+            {% elif tier == 'poty' %}
+                <span class="trophy-emoji">🏅</span>
+            {% else %}
+                <span class="trophy-emoji">🏅</span>
+            {% endif %}
+        </div>
+        <div class="indiv-body">
+            <div class="indiv-name">
+                <span class="indiv-title-text">{{ award.trophy }}</span>
+                <span class="honour-count" aria-label="{{ award.count }} {{ 'award' if award.count == 1 else 'awards' }}">{{ award.count }}</span>
+                {% if is_major %}
+                <span class="indiv-badge {{ badge_class }}">{{ badge_text }}</span>
+                {% endif %}
+            </div>
+            <div class="indiv-years">
+                {% for y in award.years %}
+                <span class="indiv-year-tag">{{ y }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+{% else %}
+    <p class="honours-empty" id="individual-empty-msg"{% if honours_loading %} style="display:none;"{% endif %}>No individual awards available</p>
+    {% if honours_loading %}
+    <div id="individual-loading-state" class="honours-loading-box">
+        <div class="honours-loading-header">
+            <i class="fas fa-circle-notch fa-spin"></i>
+            <span>Fetching individual awards ...</span>
+        </div>
+        <div class="honours-skeleton-list">
+            <div class="honours-skeleton-item"></div>
+            <div class="honours-skeleton-item"></div>
+        </div>
+    </div>
+    {% endif %}
+{% endif %}

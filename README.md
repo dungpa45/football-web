@@ -1,62 +1,38 @@
 # Football Web
 
-A modern, beautiful web app for exploring football (soccer) leagues and cups: standings, top scorers, and top assists. Built with Flask, MongoDB, and the API-Football service.
-
-![Homepage Screenshot](static/background/home_image.png)
+A Flask app for football statistics powered by FotMob, with MongoDB-backed caching and honours data.
 
 ## Features
 
-- View standings, top scorers, and top assists for major European leagues and international cups
-- Beautiful, responsive UI with modern design
-- Fast data loading with MongoDB caching
-- Player and team info with images and stats
-- API-Football integration for up-to-date data
+- Standings and season statistics for Europe's Top 5 leagues.
+- Top scorers, assists, G+A, and player ratings.
+- League-only or all-club-competitions rankings, with explicit data-coverage notices.
+- Player and team profiles, plus admin-managed honours.
 
-## Tech Stack
-- **Backend:** Python, Flask
-- **Frontend:** HTML, CSS (custom, W3CSS), Jinja2
-- **Database:** MongoDB (for caching API data)
-- **API:** [API-Football](https://www.api-football.com/)
+## Quick start
 
-## Setup & Installation
+1. Copy [`.env.example`](./.env.example) to `.env`, configure your MongoDB Atlas connection, and replace all placeholder credentials and secrets.
+2. Set `COOKIE_SECURE=false` for local HTTP.
+3. Start the app:
 
-1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/football-web.git
-   cd football-web
+   docker compose up --build
    ```
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+4. Open [http://127.0.0.1:5001](http://127.0.0.1:5001).
 
-3. **Set up environment variables:**
-   - Copy `.env.example` to `.env` and fill in your API-Football credentials:
-     ```
-     x-rapidapi-host=YOUR_API_FOOTBALL_HOST
-     x-rapidapi-key=YOUR_API_FOOTBALL_KEY
-     ```
+Docker runs only the app; the code reads the Atlas configuration supplied through `.env`. For production, configure HTTPS, Atlas network access, and restricted admin access before exposing the app.
 
-4. **Start MongoDB:**
-   - Make sure MongoDB is running locally (default: `mongodb://localhost:27017/`).
+## Documentation
 
-5. **Run the app:**
-   ```bash
-   python app.py
-   ```
-   The app will be available at [http://localhost:5000](http://localhost:5000)
+See [GUIDE.md](./GUIDE.md) for:
 
-## Usage
-- Select a league/cup and season on the homepage.
-- View standings, top scorers, or top assists.
-- Click on teams or players for detailed info.
-- Enjoy a fast, visually appealing football stats experience!
-
-## Customization
-- Edit `static/style.css` and `static/header-style.css` for UI tweaks.
-- Add or update league/cup logos in `static/league_logo/`.
-- Background images are in `static/background/`.
+- [Statistics, ratings, competition coverage, and caching](./GUIDE.md#statistics-and-competition-coverage)
+- [Docker and MongoDB Atlas setup](./GUIDE.md#run-with-docker-compose-and-mongodb-atlas), or [running without Docker](./GUIDE.md#run-without-docker)
+- [Separate VPS staging](./GUIDE.md#prepare-a-separate-vps-staging-deployment)
+- [Production, HTTPS, admin access, and backups](./GUIDE.md#production-notes)
+- [Running tests](./GUIDE.md#tests)
 
 ## License
-MIT
+
+[MIT](./LICENSE)

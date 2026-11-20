@@ -243,26 +243,25 @@
     <!-- TAB: Squad -->
     <div id="tab-squad" class="tab-content" style="display:none;">
         <div class="glass" style="padding: 20px;">
+            <table style="width:100%">
+                <thead>
+                    <tr>
+                        <th style="width:30px">#</th>
+                        <th>Name</th>
+                        <th>Country</th>
+                        <th>Age</th>
+                        <th>Height</th>
+                        <th>Pos</th>
+                        <th>Rating</th>
+                        <th>G</th>
+                        <th>A</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
             {% for group in squad %}
             {% if group.title != 'coach' %}
-            <div class="squad-group">
-                <div class="squad-group-title">{{ group.title }} ({{ group.members|length }})</div>
-                <table style="width:100%">
-                    <thead>
-                        <tr>
-                            <th style="width:30px">#</th>
-                            <th>Name</th>
-                            <th>Country</th>
-                            <th>Age</th>
-                            <th>Height</th>
-                            <th>Pos</th>
-                            <th>Rating</th>
-                            <th>G</th>
-                            <th>A</th>
-                            <th>Value</th>
-                        </tr>
-                    </thead>
                     <tbody>
+                        <tr><td colspan="10"><div class="squad-group"><div class="squad-group-title">{{ group.title }} ({{ group.members|length }})</div></div></td></tr>
                         {% for m in group.members %}
                         <tr>
                             <td>{{ m.shirtNumber or '-' }}</td>
@@ -288,10 +287,9 @@
                         </tr>
                         {% endfor %}
                     </tbody>
-                </table>
-            </div>
             {% endif %}
             {% endfor %}
+            </table>
         </div>
     </div>
 

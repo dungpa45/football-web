@@ -5,8 +5,11 @@ Lấy dữ liệu từ FotMob thông qua scraping __NEXT_DATA__ và data.fotmob.
 
 import requests
 import json
+import logging
+import re
+from copy import deepcopy
 from bs4 import BeautifulSoup
-from cache import get_cached, set_cached, TTL_LEAGUE_PAGE, TTL_STANDINGS, TTL_TOP_STATS, TTL_PLAYER, TTL_TEAM
+from cache import get_cached, set_cached, TTL_CURRENT_SEASON, TTL_PAST_SEASON, TTL_PLAYER, TTL_TEAM
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -14,6 +17,7 @@ HEADERS = {
 
 BASE_URL = "https://www.fotmob.com"
 DATA_URL = "https://data.fotmob.com"
+logger = logging.getLogger(__name__)
 
 # 5 giải hàng đầu châu Âu - FotMob league IDs
 LEAGUES = {
@@ -36,7 +40,7 @@ def _fetch_page(url):
     soup = BeautifulSoup(r.text, "html.parser")
     script = soup.find("script", attrs={"id": "__NEXT_DATA__"})
     if not script:
-        return None
+        raise requests.RequestException("FotMob page is missing __NEXT_DATA__")
     return json.loads(script.text)["props"]["pageProps"]
 
 
@@ -51,6 +55,26 @@ def _fetch_json(url):
 # =============== LEAGUE DATA ================================
 # ============================================================
 
+def _league_cache_key(league_key, season=None):
+    return f"league:v2:{league_key}:{season or 'current'}"
+
+
+def _season_ttl(season, league_data):
+    seasons = league_data.get("allAvailableSeasons", []) if isinstance(league_data, dict) else []
+    current = seasons[0] if isinstance(seasons, list) and seasons else None
+    if (isinstance(season, str) and isinstance(current, str)
+            and re.fullmatch(r"\d{4}/\d{4}", season)
+            and re.fullmatch(r"\d{4}/\d{4}", current)
+            and season < current):
+        return TTL_PAST_SEASON
+    return TTL_CURRENT_SEASON
+
+
+def _stat_ttl(league_key, season):
+    league_data = get_cached(_league_cache_key(league_key))
+    return _season_ttl(season, league_data)
+
+
 def get_league_page(league_key, season=None):
     """
     Lấy toàn bộ data trang league (standings, stats overview, seasons...).
@@ -58,9 +82,9 @@ def get_league_page(league_key, season=None):
     season: '2024/2025' hoặc None (mặc định mùa hiện tại)
     Returns: dict pageProps
     """
-    cache_key = f"league:{league_key}:{season or 'current'}"
+    cache_key = _league_cache_key(league_key, season)
     cached = get_cached(cache_key)
-    if cached:
+    if cached is not None:
         return cached
     league = LEAGUES[league_key]
     url = f"{BASE_URL}/leagues/{league['id']}/overview/{league['slug']}"
@@ -68,14 +92,14 @@ def get_league_page(league_key, season=None):
         url += f"?season={season}"
     data = _fetch_page(url)
     if data:
-        set_cached(cache_key, data, TTL_LEAGUE_PAGE)
+        set_cached(cache_key, data, _season_ttl(season, data))
     return data
 
 
 def get_available_seasons(league_key):
     """Lấy danh sách các mùa giải có sẵn."""
     data = get_league_page(league_key)
-    return data.get("allAvailableSeasons", [])
+    return data.get("allAvailableSeasons", []) if data else []
 
 
 # ============================================================
@@ -90,6 +114,8 @@ def get_standings(league_key, season=None):
         legend: list of {title, color, indices}
     """
     data = get_league_page(league_key, season)
+    if not data:
+        return [], []
     table_data = data.get("table", [])
     if not table_data:
         return [], []
@@ -104,6 +130,8 @@ def get_standings(league_key, season=None):
 def _get_season_stat_links(league_key, season=None):
     """Lấy seasonStatLinks để tìm TournamentId cho mùa giải."""
     data = get_league_page(league_key, season)
+    if not data:
+        return [], {}
     stats = data.get("stats", {})
     return stats.get("seasonStatLinks", []), stats
 
@@ -128,9 +156,9 @@ def _fetch_stat(league_key, stat_type, season=None, limit=20):
     stat_type: 'goals', 'goal_assist', 'goals_assists', 'rating', ...
     Returns: list of player dicts
     """
-    cache_key = f"stat:{league_key}:{stat_type}:{season or 'current'}:{limit}"
+    cache_key = f"stat:v2:{league_key}:{stat_type}:{season or 'current'}:{limit}"
     cached = get_cached(cache_key)
-    if cached:
+    if cached is not None:
         return cached
     league = LEAGUES[league_key]
     tournament_id, template_id = _get_tournament_id(league_key, season)
@@ -144,7 +172,7 @@ def _fetch_stat(league_key, stat_type, season=None, limit=20):
     players = top_lists[0].get("StatList", [])
     result = players[:limit] if limit else players
     if result:
-        set_cached(cache_key, result, TTL_TOP_STATS)
+        set_cached(cache_key, result, _stat_ttl(league_key, season))
     return result
 
 
@@ -168,7 +196,11 @@ def get_top_assists(league_key, season=None, limit=20):
 
 def get_top_goals_assists(league_key, season=None, limit=20):
     """Lấy danh sách top Goals + Assists, kèm xG và xA."""
-    league = LEAGUES[league_key]
+    cache_key = f"stat:v2:{league_key}:goals_assists:{season or 'current'}"
+    cached = get_cached(cache_key)
+    if cached is not None:
+        return deepcopy(cached[:limit] if limit else cached)
+
     tournament_id, template_id = _get_tournament_id(league_key, season)
     if not tournament_id:
         return []
@@ -183,24 +215,32 @@ def get_top_goals_assists(league_key, season=None, limit=20):
 
     # Fetch goals, assists, xG, xA lookups
     goals_map, assists_map, xg_map, xa_map = {}, {}, {}, {}
+    complete = True
     for stat_type, target in [("goals", goals_map), ("goal_assist", assists_map),
                                ("expected_goals", xg_map), ("expected_assists", xa_map)]:
         try:
             d = _fetch_json(f"{base}/{stat_type}.json")
-            for p in d.get("TopLists", [{}])[0].get("StatList", []):
+            top_lists = d.get("TopLists") or []
+            stat_list = top_lists[0].get("StatList", []) if top_lists else []
+            for p in stat_list:
                 target[p["ParticiantId"]] = p["StatValue"]
-        except Exception:
-            pass
+        except (requests.RequestException, json.JSONDecodeError) as exc:
+            logger.warning("Could not fetch FotMob %s stats: %s", stat_type, exc)
+            complete = False
 
     # Merge
     for p in players:
         pid = p["ParticiantId"]
-        p["Goals"] = int(goals_map.get(pid, 0))
-        p["Assists"] = int(assists_map.get(pid, 0))
-        p["xG"] = xg_map.get(pid, 0)
-        p["xA"] = xa_map.get(pid, 0)
+        goals = goals_map.get(pid)
+        assists = assists_map.get(pid)
+        p["Goals"] = int(goals) if goals is not None else None
+        p["Assists"] = int(assists) if assists is not None else None
+        p["xG"] = xg_map.get(pid)
+        p["xA"] = xa_map.get(pid)
 
-    return players[:limit] if limit else players
+    if players and complete:
+        set_cached(cache_key, players, _stat_ttl(league_key, season))
+    return deepcopy(players[:limit] if limit else players)
 
 
 def get_top_rating(league_key, season=None, limit=20):
@@ -222,7 +262,7 @@ def get_player_info(player_id):
     """
     cache_key = f"player:{player_id}"
     cached = get_cached(cache_key)
-    if cached:
+    if cached is not None:
         return cached
     url = f"{BASE_URL}/players/{player_id}/overview"
     data = _fetch_page(url)
@@ -270,7 +310,7 @@ def get_team_info(team_id):
     """
     cache_key = f"team:{team_id}"
     cached = get_cached(cache_key)
-    if cached:
+    if cached is not None:
         return cached
     url = f"{BASE_URL}/teams/{team_id}/squad"
     data = _fetch_page(url)
@@ -354,6 +394,21 @@ def get_league_image_url(league_id):
     return f"https://images.fotmob.com/image_resources/logo/leaguelogo/{league_id}.png"
 
 
+def _with_player_ratings(players, league_key, season):
+    if not players:
+        return []
+    ratings = {}
+    try:
+        ratings = {
+            p["ParticiantId"]: p["StatValue"]
+            for p in get_top_rating(league_key, season, limit=None)
+        }
+    except (requests.RequestException, json.JSONDecodeError) as exc:
+        logger.warning("Could not fetch FotMob ratings for %s (%s): %s",
+                       league_key, season or "current", exc)
+    return [{**p, "Rating": ratings.get(p["ParticiantId"])} for p in players]
+
+
 def get_top_all_leagues(stat_type="goals", season=None, limit_per_league=10):
     """
     Lấy top stats từ cả 5 giải, gộp lại và sort.
@@ -364,6 +419,7 @@ def get_top_all_leagues(stat_type="goals", season=None, limit_per_league=10):
 
     def _fetch_league(key):
         players = _fetch_stat(key, stat_type, season, limit_per_league)
+        players = _with_player_ratings(players, key, season)
         for p in players:
             p["league_key"] = key
             p["league_name"] = LEAGUES[key]["name"]
@@ -388,6 +444,7 @@ def get_top_ga_all_leagues(season=None, limit_per_league=10):
 
     def _fetch_league(key):
         players = get_top_goals_assists(key, season, limit_per_league)
+        players = _with_player_ratings(players, key, season)
         for p in players:
             p["league_key"] = key
             p["league_name"] = LEAGUES[key]["name"]

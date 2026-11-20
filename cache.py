@@ -1,92 +1,104 @@
-"""
-Cache layer - MongoDB with in-memory fallback.
-Mỗi entry: {_id: cache_key, data: ..., expires_at: datetime}
-"""
-import os
-import time as _time
-
-try:
-    import pymongo
-    _HAS_MONGO = True
-except ImportError:
-    _HAS_MONGO = False
-
+"""MongoDB cache with an in-memory fallback."""
+import logging
+import threading
+import time
 from datetime import datetime, timedelta, timezone
 
-_client = None
+from pymongo.errors import PyMongoError
+
+from mongo import my_db, myclient
+
+logger = logging.getLogger(__name__)
+
+TTL_CURRENT_SEASON = 15 * 60
+TTL_PAST_SEASON = 24 * 3600
+TTL_PLAYER = 24 * 3600
+TTL_TEAM = 24 * 3600
+MONGO_RETRY_SECONDS = 30
+
 _db = None
-_mem_cache = {}  # fallback: {key: (data, expires_ts)}
-
-# TTL defaults (seconds)
-TTL_STANDINGS = 2 * 3600       # 2h
-TTL_TOP_STATS = 2 * 3600      # 2h
-TTL_PLAYER = 24 * 3600        # 24h
-TTL_TEAM = 24 * 3600          # 24h
-TTL_LEAGUE_PAGE = 2 * 3600    # 2h
+_retry_after = 0.0
+_db_lock = threading.Lock()
+_mem_cache = {}
+_mem_lock = threading.Lock()
 
 
-_mongo_available = None  # None = chưa check, True/False
+def _mark_unavailable():
+    global _db, _retry_after
+    with _db_lock:
+        _db = None
+        _retry_after = time.monotonic() + MONGO_RETRY_SECONDS
 
 
 def _get_db():
-    global _client, _db, _mongo_available
-    if _mongo_available is False:
-        return None
-    if _db is not None:
+    global _db, _retry_after
+    with _db_lock:
+        if _db is not None:
+            return _db
+        if time.monotonic() < _retry_after:
+            return None
+        try:
+            myclient.admin.command("ping")
+            my_db["cache"].create_index("expires_at", expireAfterSeconds=0)
+        except PyMongoError as exc:
+            logger.warning("MongoDB cache unavailable; using in-memory cache: %s", exc)
+            _retry_after = time.monotonic() + MONGO_RETRY_SECONDS
+            return None
+        _db = my_db
+        _retry_after = 0.0
         return _db
-    if not _HAS_MONGO:
-        _mongo_available = False
-        return None
-    try:
-        uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-        _client = pymongo.MongoClient(uri, serverSelectionTimeoutMS=1000)
-        _client.admin.command('ping')
-        _db = _client["fotmob_cache"]
-        _db["cache"].create_index("expires_at", expireAfterSeconds=0)
-        _mongo_available = True
-        return _db
-    except Exception:
-        _mongo_available = False
-        return None
+
+
+def _cache_in_memory(key, data, expires_ts):
+    with _mem_lock:
+        _mem_cache[key] = (data, expires_ts)
 
 
 def get_cached(key):
-    # Try MongoDB
-    try:
-        db = _get_db()
-        if db:
+    with _mem_lock:
+        entry = _mem_cache.get(key)
+        if entry:
+            data, expires_ts = entry
+            if expires_ts > time.time():
+                return data
+            _mem_cache.pop(key, None)
+
+    db = _get_db()
+    if db is not None:
+        try:
             doc = db["cache"].find_one({"_id": key})
-            if doc and doc.get("expires_at", datetime.min.replace(tzinfo=timezone.utc)) > datetime.now(timezone.utc):
-                return doc["data"]
-    except Exception:
-        pass
-    # Fallback: in-memory
-    entry = _mem_cache.get(key)
-    if entry:
-        data, expires_ts = entry
-        if expires_ts > _time.time():
-            return data
-        else:
-            del _mem_cache[key]
+            if doc:
+                expires_at = doc.get("expires_at", datetime.min.replace(tzinfo=timezone.utc))
+                now = datetime.now(timezone.utc)
+                if expires_at > now:
+                    data = doc["data"]
+                    expires_ts = time.time() + (expires_at - now).total_seconds()
+                    _cache_in_memory(key, data, expires_ts)
+                    return data
+        except PyMongoError as exc:
+            logger.warning("Could not read MongoDB cache entry %s: %s", key, exc)
+            _mark_unavailable()
     return None
 
 
 def set_cached(key, data, ttl=3600):
-    # Try MongoDB
-    try:
-        db = _get_db()
-        if db:
+    db = _get_db()
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl)
+    if db is not None:
+        try:
             db["cache"].replace_one(
                 {"_id": key},
                 {
                     "_id": key,
                     "data": data,
-                    "expires_at": datetime.now(timezone.utc) + timedelta(seconds=ttl),
+                    "expires_at": expires_at,
                 },
                 upsert=True,
             )
+            remaining_ttl = max((expires_at - datetime.now(timezone.utc)).total_seconds(), 0)
+            _cache_in_memory(key, data, time.time() + remaining_ttl)
             return
-    except Exception:
-        pass
-    # Fallback: in-memory
-    _mem_cache[key] = (data, _time.time() + ttl)
+        except PyMongoError as exc:
+            logger.warning("Could not write MongoDB cache entry %s: %s", key, exc)
+            _mark_unavailable()
+    _cache_in_memory(key, data, time.time() + ttl)

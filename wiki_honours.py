@@ -2,9 +2,147 @@ import requests
 import re
 import sys
 import json
+import logging
+
+from bs4 import BeautifulSoup
 
 HEADERS = {'User-Agent': 'FootballWeb/1.0 (dungpham; test)'}
 WIKI_API = 'https://en.wikipedia.org/w/api.php'
+INDIVIDUAL_AWARDS_VERSION = 4
+logger = logging.getLogger(__name__)
+
+DISQUALIFIED_INDIVIDUAL_RE = re.compile(
+    r'\b(?:'
+    r'nominee|nominees|nomination|nominations|nominated'
+    r'|shortlist|shortlists|shortlisted'
+    r'|candidate|candidates'
+    r'|runner.?up|runners.?up|finalist|finalists'
+    r'|second place|third place|fourth place|podium'
+    r')\b',
+    re.IGNORECASE,
+)
+
+
+def is_disqualified_individual_award(name: str) -> bool:
+    """Kiểm tra tên giải cá nhân có phải là đề cử, á quân hay hạng phụ không phải danh hiệu."""
+    if not name or not isinstance(name, str):
+        return True
+    return bool(DISQUALIFIED_INDIVIDUAL_RE.search(name))
+
+
+LEAGUE_POTY_EXCLUDE_RE = re.compile(
+    r'\b(?:club|playmaker|young|fans|month|week|round|team'
+    r'|manchester|liverpool|chelsea|arsenal|tottenham|city|united'
+    r'|madrid|barcelona|bayern|juventus|milan|inter|roma|psg|dortmund'
+    r'|brighton|everton|newcastle|aston villa)\b',
+    re.IGNORECASE,
+)
+
+LEAGUE_POTY_EXPLICIT = {
+    'premier league player of the season',
+    "pfa players' player of the year",
+    'pfa player of the year',
+    "football writers' association footballer of the year",
+    'fwa footballer of the year',
+    'la liga best player',
+    'la liga player of the season',
+    'trofeo alfredo di stéfano',
+    'serie a footballer of the year',
+    'serie a most valuable player',
+    'serie a best player',
+    'serie a player of the season',
+    'bundesliga player of the season',
+    'german footballer of the year',
+    'footballer of the year in germany',
+    'ligue 1 player of the year',
+    'unfp ligue 1 player of the year',
+    'eredivisie player of the year',
+    'dutch footballer of the year',
+    'primeira liga player of the year',
+    'liga portugal player of the season',
+    'mls most valuable player',
+    'saudi pro league player of the season',
+}
+
+LEAGUE_POTY_PATTERN = re.compile(
+    r'^(?:premier league|la liga|serie a|bundesliga|ligue 1|eredivisie|primeira liga|liga portugal|mls|saudi pro league)\b.+(?:player of the (?:season|year)|footballer of the year|most valuable player|mvp|best player)',
+    re.IGNORECASE,
+)
+
+BALLON_DOR_RE = re.compile(r'ballon\s*d[\'’]or', re.IGNORECASE)
+FIFA_THE_BEST_RE = re.compile(r'the\s+best\s+fifa|fifa\s+world\s+player', re.IGNORECASE)
+GERD_MULLER_RE = re.compile(
+    r'gerd\s+m[üu]ller\s+trophy|ballon\s*d[\'’]or\s+striker\s+of\s+the\s+year',
+    re.IGNORECASE,
+)
+
+
+def normalize_trophy_name(name: str) -> str:
+    """Chuẩn hóa tên giải thưởng, loại bỏ các chú thích phụ (ví dụ Gerd Müller Trophy)."""
+    if not name or not isinstance(name, str):
+        return name
+    if GERD_MULLER_RE.search(name):
+        return 'Gerd Müller Trophy'
+    return name
+
+
+def is_league_poty_award(name: str) -> bool:
+    """Xác định danh hiệu có phải là Cầu thủ xuất sắc nhất giải VĐQG hay không."""
+    if not name or not isinstance(name, str) or is_disqualified_individual_award(name):
+        return False
+    nl = name.lower().strip()
+    if LEAGUE_POTY_EXCLUDE_RE.search(nl):
+        return False
+    if nl in LEAGUE_POTY_EXPLICIT:
+        return True
+    return bool(LEAGUE_POTY_PATTERN.search(nl))
+
+
+def is_ballon_dor_award(name: str) -> bool:
+    if not name or not isinstance(name, str) or is_disqualified_individual_award(name):
+        return False
+    if GERD_MULLER_RE.search(name):
+        return False
+    return bool(BALLON_DOR_RE.search(name))
+
+
+def is_fifa_the_best_award(name: str) -> bool:
+    if not name or not isinstance(name, str) or is_disqualified_individual_award(name):
+        return False
+    return bool(FIFA_THE_BEST_RE.search(name))
+
+
+def is_major_individual_award(name: str) -> bool:
+    return is_ballon_dor_award(name) or is_fifa_the_best_award(name) or is_league_poty_award(name)
+
+
+def individual_award_rank(award: dict) -> int:
+    trophy = award.get('trophy', '') if isinstance(award, dict) else str(award)
+    if is_ballon_dor_award(trophy):
+        return 0
+    if is_fifa_the_best_award(trophy):
+        return 1
+    if is_league_poty_award(trophy):
+        return 2
+    al = trophy.lower().strip()
+    if 'world cup' in al and 'golden' in al:
+        return 3
+    if 'golden shoe' in al or 'champions league' in al or 'copa am' in al or ('euro' in al and 'golden' in al):
+        return 4
+    if any(k in al for k in ['gerd müller', 'gerd muller', 'striker of the year', 'pichichi', 'capocannoniere', 'golden boot', 'top scorer', 'top goalscorer']):
+        return 5
+    if 'playmaker' in al:
+        return 6
+    if any(k in al for k in ['golden boy', 'kopa', 'young player']):
+        return 7
+    if any(k in al for k in ['player of the year', 'player of the season', 'footballer of the year', 'mvp']):
+        return 8
+    return 9
+
+
+def sort_individual_awards(awards: list[dict]) -> list[dict]:
+    """Sắp xếp giải cá nhân đưa các giải lớn (Ballon d'Or, FIFA The Best, League POTY) lên đầu."""
+    return sorted(awards, key=individual_award_rank)
 
 # Các đội tuyển quốc gia phổ biến
 NATIONAL_TEAMS = {
@@ -43,13 +181,15 @@ def search_wiki_page(player_name: str) -> str | None:
             if get_honours_wikitext(slug):
                 return slug
         return None
-    except Exception:
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        logger.warning("Wikipedia honours lookup failed for %s: %s", player_name, exc)
         return None
 
 
 def get_honours_wikitext(player_page: str) -> str | None:
     params = {'action': 'parse', 'page': player_page, 'prop': 'sections', 'format': 'json'}
-    r = requests.get(WIKI_API, params=params, headers=HEADERS)
+    r = requests.get(WIKI_API, params=params, headers=HEADERS, timeout=8)
+    r.raise_for_status()
     sections = r.json()['parse']['sections']
 
     honours_idx = None
@@ -62,7 +202,18 @@ def get_honours_wikitext(player_page: str) -> str | None:
         return None
 
     params = {'action': 'parse', 'page': player_page, 'prop': 'wikitext', 'section': honours_idx, 'format': 'json'}
-    return requests.get(WIKI_API, params=params, headers=HEADERS).json()['parse']['wikitext']['*']
+    r = requests.get(WIKI_API, params=params, headers=HEADERS, timeout=8)
+    r.raise_for_status()
+    return r.json()['parse']['wikitext']['*']
+
+
+def get_wiki_birth_date(player_page: str) -> str | None:
+    params = {'action': 'parse', 'page': player_page, 'prop': 'text', 'section': '0', 'format': 'json'}
+    r = requests.get(WIKI_API, params=params, headers=HEADERS, timeout=8)
+    r.raise_for_status()
+    html = r.json()['parse']['text']['*']
+    birth_date = BeautifulSoup(html, 'html.parser').select_one('.infobox .bday')
+    return birth_date.get_text(strip=True) if birth_date else None
 
 
 def clean_wikitext(wikitext: str) -> str:
@@ -96,9 +247,10 @@ def parse_honours(wikitext: str) -> dict:
         if not current_group:
             continue
 
-        # Bỏ qua runner-up / finalist / đội hình tiêu biểu / giải tháng
+        # Bỏ qua runner-up / finalist / nominee / đội hình tiêu biểu / giải tháng
         if re.search(
-            r'runner.?up|runners.?up|finalist|second place'
+            r'runner.?up|runners.?up|finalist|finalists|second place|third place|fourth place|podium'
+            r'|nominee|nominees|nomination|nominations|nominated|shortlist|shortlists|shortlisted|candidate|candidates'
             r'|team of the|xi\b|dream team'
             r'|world.?11|men.s.?11|women.s.?11|fifpro.+11|best.+11'
             r'|of the month|of the week|of the round'
@@ -126,6 +278,9 @@ def parse_honours(wikitext: str) -> dict:
         parts = line.split(':', 1)
         trophy_name = re.sub(r'\[\[([^|\]]*\|)?([^\]]*)\]\]', r'\2', parts[0]).strip()
         trophy_name = re.sub(r"''|''", '', trophy_name).strip()
+        trophy_name = normalize_trophy_name(trophy_name)
+        if is_disqualified_individual_award(trophy_name):
+            continue
 
         # Bỏ qua entries là file/image - lấy tên thật từ link tiếp theo
         if trophy_name.startswith('File') or trophy_name.startswith('Image'):
@@ -234,10 +389,12 @@ def classify_honours(honours: dict) -> dict:
         "concacaf gold cup golden ball",
         # Giải quốc gia - player of the year / season
         "premier league player of the season",
+        "premier league playmaker of the season",
         "premier league golden boot",
         "pfa players' player of the year", "pfa young player of the year",
         "football writers' association footballer of the year",
         "la liga best player",
+        "la liga player of the season",
         "pichichi trophy",
         "serie a footballer of the year",
         "serie a most valuable player",
@@ -250,18 +407,83 @@ def classify_honours(honours: dict) -> dict:
         "mls golden boot",
         "saudi pro league golden boot",
         "eredivisie golden boot",
-        # Giải cầu thủ quốc gia
-        "argentine footballer of the year",
-        "brazilian footballer of the year",
-        "french player of the year",
+        # Giải cầu thủ châu lục
         "african footballer of the year",
         "asian footballer of the year",
         "concacaf player of the year",
         "oceania footballer of the year",
+        # Giải cầu thủ quốc gia
+        "albanian footballer of the year",
+        "argentine footballer of the year",
+        "armenian footballer of the year",
+        "austrian footballer of the year",
+        "azerbaijani footballer of the year",
+        "belarusian footballer of the year",
+        "belgian golden shoe",
+        "belgian professional footballer of the year",
+        "brazilian footballer of the year",
+        "bulgarian footballer of the year",
+        "cnid footballer of the year",
+        "croatian footballer of the year",
+        "czech footballer of the year",
+        "czech golden ball",
+        "czechoslovak footballer of the year",
+        "danish football player of the year",
+        "danish football player of the year by tv2 and dbu",
+        "dutch footballer of the year",
+        "east german footballer of the year",
+        "estonian footballer of the year",
+        "faroese footballer of the year",
+        "finnish footballer of the year",
+        "france football french player of the year",
+        "french player of the year",
+        "georgian footballer of the year",
+        "german footballer of the year",
+        "germany national player of the year",
+        "footballer of the year in germany",
+        "greek footballer of the year",
+        "guldbollen",
+        "gullballen",
+        "hungarian footballer of the year",
+        "hungarian golden ball",
+        "icelandic footballer of the year",
+        "idol nacije",
+        "israeli footballer of the year",
+        "italian footballer of the year",
+        "kazakhstani footballer of the year",
+        "kniksen of the year",
+        "latvian footballer of the year",
+        "liechtensteiner footballer of the year",
+        "lithuanian footballer of the year",
+        "luxembourgish footballer of the year",
+        "macedonian footballer of the year",
+        "maltese player of the year",
+        "moldovan footballer of the year",
+        "montenegrin footballer of the year",
+        "norwegian golden ball",
+        "pfai players' player of the year",
+        "pfa scotland players' player of the year",
+        "polish footballer of the year",
+        "portuguese golden ball",
+        "romanian footballer of the year",
+        "russian footballer of the year",
+        "serbian footballer of the year",
+        "sfwa footballer of the year",
+        "slovak footballer of the year",
+        "slovenian footballer of the year",
+        "soviet footballer of the year",
+        "spanish footballer of the year",
+        "swedish footballer of the year",
+        "swiss footballer of the year",
+        "turkish footballer of the year",
+        "ukrainian footballer of the year",
+        "uzbekistan footballer of the year",
+        "welsh footballer of the year",
+        "yugoslav footballer of the year",
         # Giải trẻ
         "golden boy", "kopa trophy",
         # Franche football
-        "yashin trophy", "gerd müller trophy"
+        "yashin trophy", "gerd müller trophy",
         # Laureus
         "laureus world sportsman of the year",
     }
@@ -289,6 +511,7 @@ def classify_honours(honours: dict) -> dict:
         r"^pfa young player",
         r"^football writers.+footballer",
         r"^la liga best player",
+        r"^la liga player of the season",
         r"^serie a footballer of the year",
         r"^serie a most valuable player",
         r"^ligue 1 player of the year",
@@ -304,14 +527,23 @@ def classify_honours(honours: dict) -> dict:
         r"^golden boy$",
         r"^kopa trophy$",
         r"^yashin trophy$",
-        r"^gerd müller trophy$",
+        r"gerd m[üu]ller trophy",
+        r"striker of the year",
         r"^laureus",
         r"pusk.s award",
-        r"footballer of the year$",
-        r"^.{2,20} player of the year$",
+        r"footballer of the year(?: award)?(?:\s*(?:\([^)]*\)|in\s+.+))?$",
+        r"^danish football player of the year\b",
+        r"^(?:guldbollen|gullballen|norwegian golden ball)$",
+        r"^kniksen of the year$",
+        r"^(?:portuguese|czech|hungarian) golden ball$",
+        r"^idol nacije$",
+        r"^belgian golden shoe$",
+        r"^.+ player of the (?:year|season)(?: award)?$",
     ]
 
     def _is_prestigious_individual(name):
+        if is_disqualified_individual_award(name):
+            return False
         nl = name.lower().strip()
         # Loại bỏ phần trước / nếu có (vd: "FIFA World Player of the Year/FIFA Ballon d'Or/The Best")
         for part in nl.split('/'):
@@ -330,8 +562,9 @@ def classify_honours(honours: dict) -> dict:
             name_lower = t['trophy'].lower()
 
             if gl == 'individual':
-                if _is_prestigious_individual(t['trophy']):
-                    classified['Individual Awards'].append(t)
+                norm_name = normalize_trophy_name(t['trophy'])
+                if not is_disqualified_individual_award(norm_name) and _is_prestigious_individual(norm_name):
+                    classified['Individual Awards'].append({**t, 'trophy': norm_name})
                 continue
             elif gl == 'orders':
                 classified['Orders & Decorations'].append(t)

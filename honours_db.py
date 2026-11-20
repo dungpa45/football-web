@@ -6,13 +6,31 @@ Quản lý danh hiệu cầu thủ với MongoDB.
 - verified flag để bảo vệ data đã review
 """
 
-from datetime import datetime, timezone
+import logging
+import threading
+from copy import deepcopy
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
+
+from pymongo import ReturnDocument
+from pymongo.errors import DuplicateKeyError, PyMongoError
+from requests.exceptions import RequestException
+
 from mongo import my_db
-from wiki_honours import get_honours_wikitext, parse_honours, classify_honours, search_wiki_page
+from wiki_honours import (
+    get_honours_wikitext, get_wiki_birth_date, parse_honours, classify_honours, search_wiki_page,
+    INDIVIDUAL_AWARDS_VERSION, is_disqualified_individual_award, sort_individual_awards,
+    normalize_trophy_name,
+)
 
 # Collections
 trophy_defs = my_db['trophy_definitions']
 player_honours = my_db['player_honours']
+individual_refresh = my_db['individual_award_refresh']
+logger = logging.getLogger(__name__)
+_refresh_slots = threading.BoundedSemaphore(2)
+_active_refreshes = {}
+_active_refreshes_lock = threading.Lock()
 
 # ============================================================
 # TROPHY DEFINITIONS
@@ -166,6 +184,181 @@ def auto_seed(fotmob_id, player_name):
         save_player_honours(fotmob_id, player_name, {}, source='wikipedia:no_honours')
         return get_player_honours(fotmob_id)
     return get_player_honours(fotmob_id)
+
+
+def _merge_individual_awards(existing, incoming):
+    clean_existing = []
+    for item in existing:
+        if is_disqualified_individual_award(item.get('trophy', '')):
+            continue
+        copied = deepcopy(item)
+        copied['trophy'] = normalize_trophy_name(copied['trophy'])
+        clean_existing.append(copied)
+    merged = clean_existing
+    by_name = {' '.join(item['trophy'].casefold().split()): item for item in merged}
+    for award in incoming:
+        if is_disqualified_individual_award(award.get('trophy', '')):
+            continue
+        norm_trophy = normalize_trophy_name(award['trophy'])
+        key = ' '.join(norm_trophy.casefold().split())
+        if key not in by_name:
+            item = {
+                'trophy': norm_trophy,
+                'years': list(award.get('years', [])),
+                'count': award.get('count', 0),
+            }
+            merged.append(item)
+            by_name[key] = item
+            continue
+        item = by_name[key]
+        years = list(item.get('years', []))
+        for year in award.get('years', []):
+            if year not in years:
+                years.append(year)
+        if years != item.get('years', []):
+            item['years'] = years
+            item['count'] = max(item.get('count', 0), award.get('count', 0), len(years))
+    return merged
+
+
+def _refresh_individual_awards(fotmob_id, player_name, birth_date=None):
+    now = datetime.now(timezone.utc)
+    season = now.year if now.month >= 8 else now.year - 1
+    token = uuid4().hex
+    try:
+        try:
+            claim = individual_refresh.find_one_and_update(
+                {
+                    '_id': fotmob_id,
+                    '$and': [
+                        {'$or': [
+                            {'completed_season': {'$ne': season}},
+                            {'awards_version': {'$ne': INDIVIDUAL_AWARDS_VERSION}},
+                        ]},
+                        {'$or': [
+                            {'next_attempt_at': {'$exists': False}},
+                            {'next_attempt_at': {'$lte': now}},
+                        ]},
+                    ],
+                },
+                {'$set': {'lease_token': token, 'next_attempt_at': now + timedelta(minutes=5)}},
+                upsert=True,
+                return_document=ReturnDocument.AFTER,
+            )
+        except DuplicateKeyError:
+            return
+        if not claim:
+            return
+
+        doc = get_player_honours(fotmob_id)
+        if doc and doc.get('verified'):
+            return
+        source = (doc.get('source') or '') if doc else ''
+        wiki_page = source.removeprefix('wikipedia:') if source.startswith('wikipedia:') else ''
+        if wiki_page in ('not_found', 'no_honours'):
+            wiki_page = ''
+        if not wiki_page:
+            wiki_page = search_wiki_page(player_name) if birth_date else None
+            if wiki_page and get_wiki_birth_date(wiki_page) != birth_date:
+                logger.warning("Wikipedia birth date does not match player %s", fotmob_id)
+                wiki_page = None
+        wikitext = get_honours_wikitext(wiki_page) if wiki_page else None
+        if not wikitext:
+            logger.warning("Wikipedia honours unavailable for player %s", fotmob_id)
+            individual_refresh.update_one(
+                {'_id': fotmob_id, 'lease_token': token},
+                {'$set': {'next_attempt_at': datetime.now(timezone.utc) + timedelta(days=1)},
+                 '$unset': {'lease_token': ''}},
+            )
+            return
+
+        awards = classify_honours(parse_honours(wikitext)).get('Individual Awards', [])
+        doc = get_player_honours(fotmob_id)
+        if doc and doc.get('verified'):
+            return
+        honours = deepcopy(doc.get('honours', {})) if doc else {}
+        existing = honours.get('individual', [])
+        merged = _merge_individual_awards(existing, awards)
+        if merged != existing:
+            honours['individual'] = merged
+            updated_at = datetime.now(timezone.utc)
+            if doc:
+                result = player_honours.update_one(
+                    {
+                        'fotmob_id': fotmob_id,
+                        'verified': {'$ne': True},
+                        'updated_at': doc.get('updated_at'),
+                        'honours': doc.get('honours'),
+                    },
+                    {'$set': {'honours': honours, 'updated_at': updated_at}},
+                )
+                if not result.matched_count:
+                    logger.info("Player %s changed during awards refresh; retrying later", fotmob_id)
+                    return
+            else:
+                player_honours.insert_one({
+                    'fotmob_id': fotmob_id, 'name': player_name, 'honours': honours,
+                    'source': f'wikipedia:{wiki_page}', 'verified': False,
+                    'created_at': updated_at, 'updated_at': updated_at,
+                })
+        individual_refresh.update_one(
+            {'_id': fotmob_id, 'lease_token': token},
+            {'$set': {'completed_season': season, 'awards_version': INDIVIDUAL_AWARDS_VERSION,
+                      'last_success_at': datetime.now(timezone.utc)},
+             '$unset': {'lease_token': '', 'next_attempt_at': ''}},
+        )
+    except (RequestException, ValueError, KeyError, TypeError, PyMongoError):
+        logger.exception("Could not refresh individual awards for player %s", fotmob_id)
+
+
+def is_individual_refresh_active(fotmob_id):
+    with _active_refreshes_lock:
+        return fotmob_id in _active_refreshes
+
+
+def wait_for_individual_refresh(fotmob_id, timeout=2.0):
+    with _active_refreshes_lock:
+        ev = _active_refreshes.get(fotmob_id)
+    if ev:
+        return ev.wait(timeout=timeout)
+    return True
+
+
+def schedule_individual_refresh(fotmob_id, player_name, doc, birth_date=None):
+    if doc and doc.get('verified'):
+        return False
+    with _active_refreshes_lock:
+        if fotmob_id in _active_refreshes:
+            return True
+    if not _refresh_slots.acquire(blocking=False):
+        logger.warning("Awards refresh busy for player %s; retrying on a later visit", fotmob_id)
+        return False
+
+    event = threading.Event()
+    with _active_refreshes_lock:
+        _active_refreshes[fotmob_id] = event
+
+    def run():
+        try:
+            _refresh_individual_awards(fotmob_id, player_name, birth_date)
+        finally:
+            _refresh_slots.release()
+            with _active_refreshes_lock:
+                ev = _active_refreshes.pop(fotmob_id, None)
+                if ev:
+                    ev.set()
+
+    try:
+        threading.Thread(target=run, daemon=True).start()
+        return True
+    except RuntimeError:
+        _refresh_slots.release()
+        with _active_refreshes_lock:
+            ev = _active_refreshes.pop(fotmob_id, None)
+            if ev:
+                ev.set()
+        logger.exception("Could not start individual awards refresh for player %s", fotmob_id)
+        return False
 
 
 def get_honours_summary(fotmob_id):

@@ -17,6 +17,7 @@
     <div class="glass admin-section" style="margin-bottom:24px; padding:24px;">
         <div class="section-title"><i class="fab fa-wikipedia-w"></i> Seed từ Wikipedia</div>
         <form method="POST" action="{{ url_for('fm_admin_seed') }}" class="seed-form">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <input type="number" name="fotmob_id" placeholder="FotMob ID" required>
             <input type="text" name="player_name" placeholder="Tên cầu thủ" required>
             <input type="text" name="wiki_page" placeholder="Wikipedia page (vd: Lionel_Messi)" required>
@@ -53,6 +54,7 @@
                     <td class="stat-bold">{{ p.total }}</td>
                     <td>
                         <form method="POST" action="{{ url_for('fm_admin_toggle_verified', fotmob_id=p.fotmob_id) }}" style="display:inline">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="verified-badge {{ 'verified' if p.verified else 'unverified' }}">
                                 <i class="fas {{ 'fa-check-circle' if p.verified else 'fa-circle-xmark' }}"></i>
                                 {{ 'Yes' if p.verified else 'No' }}
@@ -65,6 +67,7 @@
                             <i class="fas fa-eye"></i> Review
                         </a>
                         <form method="POST" action="{{ url_for('fm_admin_delete', fotmob_id=p.fotmob_id) }}" style="display:inline" onsubmit="return confirm('Xóa {{ p.name }}?')">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm" style="background:rgba(248,113,113,0.15);color:var(--red);border:1px solid rgba(248,113,113,0.3)">
                                 <i class="fas fa-trash"></i>
                             </button>

@@ -1,6 +1,15 @@
 # Git
 .git
 .gitignore
+.env
+.env.*
+!.env.example
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+data/
+legacy_api_football/
 
 # CI
 .codeclimate.yml
@@ -9,6 +18,7 @@
 
 # Docker
 docker-compose.yml
+docker-compose.staging.yml
 .docker
 
 # Byte-compiled / optimized / DLL files
