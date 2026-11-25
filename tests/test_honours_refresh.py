@@ -334,7 +334,7 @@ class IndividualRefreshMongoTests(unittest.TestCase):
 
     def test_new_player_is_created_when_awards_are_found(self):
         self.players.delete_one({'fotmob_id': 10})
-        with patch.object(honours_db, 'search_wiki_page', return_value='Player'), patch.object(
+        with patch.object(honours_db, 'search_wiki_pages', return_value=['Player']), patch.object(
             honours_db, 'get_wiki_birth_date', return_value='1993-07-28'
         ), patch.object(
             honours_db, 'get_honours_wikitext', return_value='honours'
@@ -350,13 +350,30 @@ class IndividualRefreshMongoTests(unittest.TestCase):
 
     def test_new_player_with_mismatched_birth_date_is_not_saved(self):
         self.players.delete_one({'fotmob_id': 10})
-        with patch.object(honours_db, 'search_wiki_page', return_value='Wrong_Player'), patch.object(
+        with patch.object(honours_db, 'search_wiki_pages', return_value=['Wrong_Player']), patch.object(
             honours_db, 'get_wiki_birth_date', return_value='1992-01-01'
         ), patch.object(honours_db, 'get_honours_wikitext') as fetch:
             honours_db._refresh_individual_awards(10, 'Player', '1993-07-28')
         fetch.assert_not_called()
         self.assertIsNone(self.players.find_one({'fotmob_id': 10}))
         self.assertNotIn('completed_season', self.refresh.find_one({'_id': 10}))
+
+    def test_next_candidate_is_used_when_first_birth_date_mismatches(self):
+        self.players.delete_one({'fotmob_id': 10})
+        with patch.object(
+            honours_db, 'search_wiki_pages', return_value=['Wrong_Player', 'Right_Player']
+        ), patch.object(
+            honours_db, 'get_wiki_birth_date', side_effect=['1992-01-01', '1993-07-28']
+        ), patch.object(
+            honours_db, 'get_honours_wikitext', return_value='honours'
+        ), patch.object(honours_db, 'parse_honours', return_value={}), patch.object(
+            honours_db, 'classify_honours',
+            return_value={'Individual Awards': [{'trophy': 'New', 'years': ['2026'], 'count': 1}]},
+        ):
+            honours_db._refresh_individual_awards(10, 'Player', '1993-07-28')
+        doc = self.players.find_one({'fotmob_id': 10})
+        self.assertEqual(doc['source'], 'wikipedia:Right_Player')
+        self.assertEqual(doc['honours']['individual'][0]['trophy'], 'New')
 
     def test_two_workers_claim_only_one_refresh(self):
         started = threading.Event()

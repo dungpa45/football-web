@@ -45,8 +45,22 @@ def _mongo_uri():
 
 myclient = pymongo.MongoClient(
     _mongo_uri(),
-    serverSelectionTimeoutMS=3000,
-    connectTimeoutMS=3000,
+    # Connection Pooling
+    maxPoolSize=50,
+    minPoolSize=5,
+    maxConnecting=5,
+    maxIdleTimeMS=60000,
+    waitQueueTimeoutMS=5000,
+
+    # Connection timeout
+    serverSelectionTimeoutMS=5000,
+    connectTimeoutMS=5000,
+    socketTimeoutMS=20000,
+
+    # Monitoring
+    heartbeatFrequencyMS=10000,
+
+    # Timezone
     tz_aware=True,
 )
 my_db = myclient[os.getenv("MONGO_DB_NAME", "football")]

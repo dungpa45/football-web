@@ -393,11 +393,19 @@ def get_top_club_stats(stat_type, season, limit=30):
     result = deepcopy(result)
     for player in result["players"]:
         player["StatValue"] = (
+            player["Rating"] if stat_type == "rating" else
             player["Goals"] if stat_type == "goals" else
             player["Assists"] if stat_type == "assists" else player["Goals"] + player["Assists"]
         )
-    result["players"] = sorted(
-        (p for p in result["players"] if p["StatValue"] > 0),
-        key=lambda p: (-p["StatValue"], p["ParticipantName"], p["ParticiantId"]),
-    )[:limit]
+    if stat_type == "rating":
+        result["players"] = sorted(
+            (p for p in result["players"]
+             if p["StatValue"] is not None and p["MatchesPlayed"] is not None and p["MatchesPlayed"] >= 5),
+            key=lambda p: (-p["StatValue"], p["ParticipantName"], p["ParticiantId"]),
+        )[:limit]
+    else:
+        result["players"] = sorted(
+            (p for p in result["players"] if p["StatValue"] > 0),
+            key=lambda p: (-p["StatValue"], p["ParticipantName"], p["ParticiantId"]),
+        )[:limit]
     return result

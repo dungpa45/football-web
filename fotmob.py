@@ -4,6 +4,7 @@ Lấy dữ liệu từ FotMob thông qua scraping __NEXT_DATA__ và data.fotmob.
 """
 
 import requests
+from requests.exceptions import Timeout
 import json
 import logging
 import re
@@ -449,6 +450,44 @@ def get_top_ga_all_leagues(season=None, limit_per_league=10):
             p["league_key"] = key
             p["league_name"] = LEAGUES[key]["name"]
             p["league_id"] = LEAGUES[key]["id"]
+        return players
+
+    all_players = []
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        results = ex.map(_fetch_league, LEAGUES.keys())
+    for players in results:
+        all_players.extend(players)
+    all_players.sort(key=lambda x: x["StatValue"], reverse=True)
+    return all_players
+
+
+def get_top_rating_all_leagues(season=None):
+    """
+    Lấy top rating từ cả 5 giải, ghép thêm Goals/Assists, sort theo Rating giảm dần.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    def _fetch_league(key):
+        players = _fetch_stat(key, "rating", season, limit=None)
+        for p in players:
+            p["Rating"] = p["StatValue"]
+            p["Goals"] = None
+            p["Assists"] = None
+            p["league_key"] = key
+            p["league_name"] = LEAGUES[key]["name"]
+            p["league_id"] = LEAGUES[key]["id"]
+        for stat, field in (("goals", "Goals"), ("goal_assist", "Assists")):
+            try:
+                values = {
+                    r["ParticiantId"]: r["StatValue"]
+                    for r in _fetch_stat(key, stat, season, limit=None)
+                }
+            except (Timeout, json.JSONDecodeError) as exc:
+                logger.warning("%s/%s unavailable for %s: %s", key, stat, season or "current", exc)
+                continue
+            for p in players:
+                if values.get(p["ParticiantId"]) is not None:
+                    p[field] = values[p["ParticiantId"]]
         return players
 
     all_players = []

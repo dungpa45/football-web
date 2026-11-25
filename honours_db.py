@@ -19,6 +19,7 @@ from requests.exceptions import RequestException
 from mongo import my_db
 from wiki_honours import (
     get_honours_wikitext, get_wiki_birth_date, parse_honours, classify_honours, search_wiki_page,
+    search_wiki_pages,
     INDIVIDUAL_AWARDS_VERSION, is_disqualified_individual_award, sort_individual_awards,
     normalize_trophy_name,
 )
@@ -67,6 +68,24 @@ def upsert_trophy_def(name, category, **kwargs):
         }, '$setOnInsert': {'created_at': datetime.now(timezone.utc)}},
         upsert=True,
     )
+
+
+def _find_wiki_page(fotmob_id: int, player_name: str, birth_date: str | None) -> str | None:
+    """Tìm trang Wikipedia khớp ngày sinh (nếu có), ưu tiên trang có mục honours."""
+    if not birth_date:
+        return search_wiki_page(player_name)
+    for slug in search_wiki_pages(player_name):
+        wiki_birth_date = get_wiki_birth_date(slug)
+        if wiki_birth_date != birth_date:
+            logger.debug(
+                "Wikipedia birth date does not match player %s: page %s has %s, expected %s",
+                fotmob_id, slug, wiki_birth_date or 'unknown', birth_date,
+            )
+            continue
+        if get_honours_wikitext(slug):
+            return slug
+    logger.warning("No Wikipedia page with matching birth date %s for player %s", birth_date, fotmob_id)
+    return None
 
 
 # ============================================================
@@ -258,10 +277,7 @@ def _refresh_individual_awards(fotmob_id, player_name, birth_date=None):
         if wiki_page in ('not_found', 'no_honours'):
             wiki_page = ''
         if not wiki_page:
-            wiki_page = search_wiki_page(player_name) if birth_date else None
-            if wiki_page and get_wiki_birth_date(wiki_page) != birth_date:
-                logger.warning("Wikipedia birth date does not match player %s", fotmob_id)
-                wiki_page = None
+            wiki_page = _find_wiki_page(fotmob_id, player_name, birth_date) if birth_date else None
         wikitext = get_honours_wikitext(wiki_page) if wiki_page else None
         if not wikitext:
             logger.warning("Wikipedia honours unavailable for player %s", fotmob_id)

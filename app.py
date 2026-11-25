@@ -20,7 +20,7 @@ from fotmob import (
     get_available_seasons, get_player_info,
     get_team_info, get_team_squad, get_team_coach, get_team_venue,
     get_team_coach_history,
-    get_top_all_leagues, get_top_ga_all_leagues,
+    get_top_all_leagues, get_top_ga_all_leagues, get_top_rating_all_leagues,
 )
 from honours_db import (
     ensure_indexes, get_player_honours, save_player_honours,
@@ -213,6 +213,11 @@ def fm_all_topga():
     return _render_all_top("ga", "Top G+A")
 
 
+@app.route("/all/toprating")
+def fm_all_toprating():
+    return _render_all_top("rating", "Top Rating")
+
+
 def _render_all_top(stat_type, title):
     scope = request.args.get("scope", "league")
     if scope not in ("league", "all"):
@@ -229,6 +234,8 @@ def _render_all_top(stat_type, title):
         }
     elif stat_type == "ga":
         players = get_top_ga_all_leagues(season=season, limit_per_league=10)
+    elif stat_type == "rating":
+        players = get_top_rating_all_leagues(season=season)
     else:
         players = get_top_all_leagues(
             "goals" if stat_type == "goals" else "goal_assist",

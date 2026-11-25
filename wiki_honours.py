@@ -160,24 +160,34 @@ NATIONAL_TEAMS = {
 }
 
 
-def search_wiki_page(player_name: str) -> str | None:
-    """Tìm Wikipedia page từ tên cầu thủ."""
+def search_wiki_pages(player_name: str) -> list[str]:
+    """Liệt kê các trang Wikipedia ứng viên cho tên cầu thủ (direct match trước, rồi search)."""
+    candidates = []
     try:
-        # 1) Thử direct page match trước
         slug = player_name.replace(' ', '_')
         params = {'action': 'query', 'titles': slug, 'format': 'json'}
         r = requests.get(WIKI_API, params=params, headers=HEADERS, timeout=5)
         pages = r.json().get('query', {}).get('pages', {})
         if '-1' not in pages:
-            if get_honours_wikitext(slug):
-                return slug
+            candidates.append(slug)
 
-        # 2) Fallback: search và chọn page đầu tiên có honours
         params = {'action': 'query', 'list': 'search', 'srsearch': f'{player_name} footballer',
                   'format': 'json', 'srlimit': 5}
         r = requests.get(WIKI_API, params=params, headers=HEADERS, timeout=5)
         for result in r.json().get('query', {}).get('search', []):
-            slug = result['title'].replace(' ', '_')
+            candidate = result['title'].replace(' ', '_')
+            if candidate not in candidates:
+                candidates.append(candidate)
+        return candidates
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        logger.warning("Wikipedia page lookup failed for %s: %s", player_name, exc)
+        return candidates
+
+
+def search_wiki_page(player_name: str) -> str | None:
+    """Tìm Wikipedia page từ tên cầu thủ (trang đầu tiên có mục honours)."""
+    try:
+        for slug in search_wiki_pages(player_name):
             if get_honours_wikitext(slug):
                 return slug
         return None
@@ -389,12 +399,13 @@ def classify_honours(honours: dict) -> dict:
         "concacaf gold cup golden ball",
         # Giải quốc gia - player of the year / season
         "premier league player of the season",
-        "premier league playmaker of the season",
+        "premier league playmaker of the season", "most assists in the premier league",
         "premier league golden boot",
         "pfa players' player of the year", "pfa young player of the year",
         "football writers' association footballer of the year",
         "la liga best player",
         "la liga player of the season",
+        "la liga top assist provider",
         "pichichi trophy",
         "serie a footballer of the year",
         "serie a most valuable player",
@@ -412,6 +423,7 @@ def classify_honours(honours: dict) -> dict:
         "asian footballer of the year",
         "concacaf player of the year",
         "oceania footballer of the year",
+        "south american footballer of the year:"
         # Giải cầu thủ quốc gia
         "albanian footballer of the year",
         "argentine footballer of the year",

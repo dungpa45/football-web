@@ -25,6 +25,9 @@
         <a href="{{ url_for('fm_all_topga', season=current_season, scope=competition_scope) }}" class="tab-btn {% if stat_type == 'ga' %}active{% endif %}">
             <i class="fas fa-chart-line"></i> G+A
         </a>
+        <a href="{{ url_for('fm_all_toprating', season=current_season, scope=competition_scope) }}" class="tab-btn {% if stat_type == 'rating' %}active{% endif %}">
+            <i class="fas fa-star"></i> Top Rating
+        </a>
         <form method="GET" style="margin-left:auto; display:flex; align-items:center; gap:8px;">
             <input type="hidden" name="scope" value="{{ competition_scope }}">
             <select name="season" onchange="this.form.submit()" style="padding:6px 12px; border-radius:8px; background:var(--glass-bg); border:1px solid var(--glass-border); color:var(--text-primary); font-family:'Inter',sans-serif; font-size:0.85em;">
@@ -61,7 +64,10 @@
                     <th>Team</th>
                     <th>League</th>
                     <th title="{{ 'Weighted average of available ratings by rated appearances' if competition_scope == 'all' else 'Average FotMob rating in this league for the selected season' }}">Rating</th>
-                    {% if stat_type == 'goals' %}
+                    {% if stat_type == 'rating' %}
+                    <th>Goals</th>
+                    <th>Assists</th>
+                    {% elif stat_type == 'goals' %}
                     <th>Goals</th>
                     <th>Mins/G</th>
                     {% elif stat_type == 'assists' %}
@@ -100,7 +106,10 @@
                         </span>
                     </td>
                     <td>{% if p.Rating is defined and p.Rating is not none %}<span class="career-rating{% if p.Rating > 8 %} rating-high{% elif p.Rating > 7 %} rating-good{% endif %}">{{ "%.2f"|format(p.Rating) }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
-                    {% if stat_type == 'goals' %}
+                    {% if stat_type == 'rating' %}
+                    <td>{{ p.get('Goals') if p.get('Goals') is not none else '—' }}</td>
+                    <td>{{ p.get('Assists') if p.get('Assists') is not none else '—' }}</td>
+                    {% elif stat_type == 'goals' %}
                     <td class="stat-bold">{{ p.StatValue|int }}{% if p.SubStatValue|int > 0 %} <span style="color:var(--text-muted);font-size: 14px;">({{ p.SubStatValue|int }})</span>{% endif %}</td>
                     <td style="color:var(--text-secondary);">{% if p.MinutesPlayed is not none and p.StatValue %}{{ (p.MinutesPlayed / p.StatValue)|round(0)|int }}'{% else %}—{% endif %}</td>
                     {% elif stat_type == 'assists' %}
